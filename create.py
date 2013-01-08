@@ -51,25 +51,27 @@ def _httpdir(username):
     """
     return os.path.sep + os.path.join("services", "http", "users", username[0], username)
 
-def _ldap_add(user, shell = "/bin/bash"):
-    calnet_entry = user.get("calnet_entry", "")
+def _ldap_add(user, connection, shell = "/bin/bash"):
+    dn = "uid={},ou=People,dc=OCF,dc=Berkeley,dc=EDU".format(user["username"])
+    attrs = {
+        "objectClass": "ocfAccount",
+        "objectClass": "account",
+        "objectClass": "posixAccount",
+        "cn", user["real_name"],
+        "uid": user["username"],
+        "uidNumber": user["university_id"],
+        "gidNumber": getgrnam("ocf").gr_gid,
+        "homeDirectory": _homedir(user["username"]),
+        "loginShell": shell,
+        "gecos": user["real_name"]
+    }
 
-    dn = "uid={username},ou=People,dc=OCF,dc=Berkeley,dc=EDU".format(username = user["username"])
-    attrs = {"objectClass": "ocfAccount",
-             "objectClass": "account",
-             "objectClass": "posixAccount",
-             "cn", user["real_name"],
-             "uid": user["username"],
-             "uidNumber": user["university_id"],
-             "gidNumber": getgrnam("ocf").gr_gid,
-             "homeDirectory": _homedir(user["username"]),
-             "loginShell": shell,
-             "gecos": "{} {}".format(user["real_name"], calnet_entry) # What is this???
-             }
+    if "calnet_uid" in user and user["calnet_uid"].isdigit():
+        attrs["calNetuid"]: user["calnet_uid"] # str() this?
 
     # Enter it into LDAP
     ldif = ldap.modlist.addModlist(attrs)
-    LDAP_CONN.add_s(dn, ldif)
+    connection.add_s(dn, ldif)
 
 def _forward_add(user):
     if user["forward"]:
