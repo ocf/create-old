@@ -51,19 +51,20 @@ def _httpdir(username):
     """
     return os.path.sep + os.path.join("services", "http", "users", username[0], username)
 
-def _ldap_add(username, real_name, university_id, calnet_entry = "",
-              shell = "/bin/bash"):
-    dn = "uid={username},ou=People,dc=OCF,dc=Berkeley,dc=EDU".format(username = username)
+def _ldap_add(user, shell = "/bin/bash"):
+    calnet_entry = user.get("calnet_entry", "")
+
+    dn = "uid={username},ou=People,dc=OCF,dc=Berkeley,dc=EDU".format(username = user["username"])
     attrs = {"objectClass": "ocfAccount",
              "objectClass": "account",
              "objectClass": "posixAccount",
-             "cn", real_name,
-             "uid": username,
-             "uidNumber": university_id,
-             "gidNumber": 20,
-             "homeDirectory": _homedir(username),
+             "cn", user["real_name"],
+             "uid": user["username"],
+             "uidNumber": user["university_id"],
+             "gidNumber": getgrnam("ocf").gr_gid,
+             "homeDirectory": _homedir(user["username"]),
              "loginShell": shell,
-             "gecos": "{} {}".format(real_name, calnet_entry) # What is this???
+             "gecos": "{} {}".format(user["real_name"], calnet_entry) # What is this???
              }
 
     # Enter it into LDAP
@@ -77,7 +78,7 @@ def _forward_add(user):
         with open(forward, "w") as f:
             f.write(user["email"] + "\n")
 
-        os.chown(forward, getpwnam(user["username"]), getgrnam("ocf"))
+        os.chown(forward, getpwnam(user["username"]).pwd_uid, getgrnam("ocf").gr_gid)
 
 def _homedir_add(user):
     home = _homedir(user["username"])
@@ -86,8 +87,8 @@ def _homedir_add(user):
     os.makedirs(home)
     os.makedirs(http)
 
-    os.chown(home, getpwnam(user["username"]), getgrnam("ocf"))
-    os.chown(http, getpwnam(user["username"]), getgrnam("ocf"))
+    os.chown(home, getpwnam(user["username"]).pw_uid, getgrnam("ocf").gr_gid)
+    os.chown(http, getpwnam(user["username"]).pw_uid, getgrnam("ocf").gr_gid)
 
     os.chmod(home, 0700)
     os.chmod(http, 0000)
