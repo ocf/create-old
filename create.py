@@ -58,7 +58,7 @@ def _ldap_add(user, connection, shell = "/bin/bash"):
         "objectClass": "ocfAccount",
         "objectClass": "account",
         "objectClass": "posixAccount",
-        "cn", user["real_name"],
+        "cn": user["real_name"],
         "uid": user["username"],
         "uidNumber": user["university_id"],
         "gidNumber": getgrnam("ocf").gr_gid,
@@ -68,7 +68,7 @@ def _ldap_add(user, connection, shell = "/bin/bash"):
     }
 
     if "calnet_uid" in user and user["calnet_uid"].isdigit():
-        attrs["calNetuid"]: user["calnet_uid"] # str() this?
+        attrs["calNetuid"] = user["calnet_uid"] # str() this?
 
     # Enter it into LDAP
     ldif = ldap.modlist.addModlist(attrs)
@@ -189,22 +189,22 @@ def _decrypt_password(password, priv_key):
 
 def _create_parser():
     parser = argparse.ArgumentParser(description = 'Process and create user accounts.')
-	parser.add_option("-u", "--usersfile", dest = "users_file",
+    parser.add_option("-u", "--usersfile", dest = "users_file",
                       default = "/opt/adm/approved.users",
                       help = "Input file of approved users")
-	parser.add_option("-l", "--logfile", dest = "log_file",
+    parser.add_option("-l", "--logfile", dest = "log_file",
                       default = "/opt/adm/approved.log",
                       help = "Input file of approved log")
-	parser.add_option("-p", "--priv-key", dest = "rsa_priv_key",
+    parser.add_option("-p", "--priv-key", dest = "rsa_priv_key",
                       default = "/opt/adm/pass_private.pem",
                       help = "Private key to decrypt user passwords")
-	parser.add_option("-c", "--calnetldap", dest = "calnet_ldap_url",
+    parser.add_option("-c", "--calnetldap", dest = "calnet_ldap_url",
                       default = "ldap://169.229.218.90",
                       help = "Url of CalNet's LDAP")
-	parser.add_option("-o", "--ocfldap", dest = "ocf_ldap_url",
+    parser.add_option("-o", "--ocfldap", dest = "ocf_ldap_url",
                       default = "ldaps://ldap.ocf.berkeley.edu",
                       help = "Url of OCF's LDAP")
-	parser.add_option("-b", "--uidlowerbound", dest = "conflict_uid_lower_bound",
+    parser.add_option("-b", "--uidlowerbound", dest = "conflict_uid_lower_bound",
                       default = 16000,
                       help = "Lower bound for OCF name collision detection")
     return parser
