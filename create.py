@@ -4,11 +4,23 @@ Let there be light.
 User creation tool.
 """
 
-import ldap
+# Dependencies:
+# python2.7
+# python-ldap
+# pycrypto
+
 import sys
+import os
 import argparse
 
-ACCOUNT_CREATED_LETTER="txt/acct.created.letter"
+import ldap
+from Crypto.Cipher import PKCS1_OAEP
+from Crypto.PublicKey import RSA
+
+ACCOUNT_CREATED_LETTER = "txt/acct.created.letter"
+
+LDAP_CON = None
+RSA_CIPHER = None
 
 def _associate_calnet(username):
     pass
@@ -16,14 +28,35 @@ def _associate_calnet(username):
 def _check_username(username):
     pass
 
+def _ldap_add(username, real_name, university_id, calnet_entry = "",
+              shell = "/bin/bash"):
+    home = os.path.sep + os.path.join("home", username[0], username[:2], username)
+
+    dn = "uid={username},ou=People,dc=OCF,dc=Berkeley,dc=EDU".format(username = username)
+    attrs = {"objectClass": "ocfAccount",
+             "objectClass": "account",
+             "objectClass": "posixAccount",
+             "cn", real_name,
+             "uid": username,
+             "uidNumber": university_id,
+             "gidNumber": 20,
+             "homeDirectory": home,
+             "loginShell": shell,
+             "gecos": "{} {}".format(real_name, calnet_entry) # What is this???
+             }
+
+    # Enter it into LDAP
+    ldif = ldap.modlist.addModlist(attrs)
+    LDAP_CONN.add_s(dn, ldif)
+
 def _forward_add(username):
     firstchar = username[0]
-    firsttwochar = username[:1]
+    firsttwochar = username[:2]
     pass
 
 def _homedir_add(username):
     firstchar = username[0]
-    firsttwochar = username[:1]
+    firsttwochar = username[:2]
     pass
 
 def _kerberos_add(username):
@@ -39,14 +72,13 @@ def _finish_account_creation():
     pass
 
 def _get_max_uid_number():
-    l = ldap.initialize("ldaps://ldap-master.ocf.berkeley.edu")
-    l.simple_bind_s('','')
-    ldap_entries = l.search_st("ou=People,dc=OCF,dc=Berkeley,dc=EDU",
-                               ldap.SCOPE_SUBTREE, "(uid=*)", ["uidNumber"])
-    uid_numbers = [max([int(num) for num in entry[1]["uidNumber"]])
-                   for entry in ldap_entries]
-    max_uid_number = max(uid_numbers)
-    return max_uid_number
+    entries = LDAP_CON.search_st("ou=People,dc=OCF,dc=Berkeley,dc=EDU",
+                                 ldap.SCOPE_SUBTREE, "(uid=*)", ["uidNumber"])
+    uid_numbers = (int(num)
+                   for num in entry[1]["uidNumber"]
+                   for entry in entries)
+
+    return max(uid_numbers)
 
 def _process_group(username, group_name, email, forward, password, university_id):
     print "group", group_name
@@ -54,22 +86,63 @@ def _process_group(username, group_name, email, forward, password, university_id
 def _process_user(username, real_name, email, forward, password, university_id):
     print "user", username
 
+def _decrypt_password(password, priv_key):
+    # Use an asymmetric encryption algorithm to allow the keys to be stored on disk
+    # Generate the public / private keys with the following code:
+    # >>> from Crypto.PublicKey import RSA
+    # >>> key = RSA.generate(2048)
+    # >>> open("private.pem", "w").write(key.exportKey())
+    # >>> open("public.pem", "w").write(key.publickey().exportKey())
+
+    global RSA_CIPHER
+
+    if RSA_CIPHER is None:
+        key = RSA.importKey(open(priv_key).read())
+        RSA_CIPHER = PKCS1_OAEP.new(key)
+
+    return RSA_CIPHER.decrypt(password)
+
+def _create_parser():
+    parser = argparse.ArgumentParser(description = 'Process and create user accounts.')
+	parser.add_option("-u", "--usersfile", dest = "users_file",
+                      default = "/opt/adm/approved.users",
+                      help = "Input file of approved users")
+	parser.add_option("-l", "--logfile", dest = "log_file",
+                      default = "/opt/adm/approved.log",
+                      help = "Input file of approved log")
+	parser.add_option("-p", "--priv-key", dest = "rsa_priv_key",
+                      default = "/opt/adm/pass_private.pem",
+                      help = "Private key to decrypt user passwords")
+	parser.add_option("-c", "--calnetldap", dest = "calnet_ldap_url",
+                      default = "ldap://169.229.218.90",
+                      help = "Url of CalNet's LDAP")
+	parser.add_option("-o", "--ocfldap", dest = "ocf_ldap_url",
+                      default = "ldaps://ldap.ocf.berkeley.edu",
+                      help = "Url of OCF's LDAP")
+	parser.add_option("-b", "--uidlowerbound", dest = "conflict_uid_lower_bound",
+                      default = 16000,
+                      help = "Lower bound for OCF name collision detection")
+    return parser
+
 def main(args):
     """
     Process a file contain a list of user accounts to create.
     """
 
-    parser = argparse.ArgumentParser(description = 'Process and create user accounts.')
-    parser.add_argument('approved', type = file, nargs = '+',
-                        help = 'user accounts awaiting creation')
+    parsed = _create_parser().parse_args()
 
-    parsed = parser.parse_args()
+    # Connect to LDAP
+    global LDAP_CON
+    LDAP_CON = ldap.initialize(parser.ldap)
+    LDAP_CON.simple_bind_s('','')
 
     # Process all of the requested accounts
     for f in parsed.approved:
         for line in f:
             username, real_name, group_name, email, forward, \
               group, password, key, university_id = line.split(":")
+
+            password = base64.b64encode(_decrypt_password(password, parser.rsa_priv_key))
 
             if bool(int(group)):
                 _process_group(username, group_name, email, forward,
