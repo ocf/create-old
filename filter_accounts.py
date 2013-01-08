@@ -79,7 +79,7 @@ def _parse_users_file(filename):
 		if user["personal_owner"] is not None and user["group_owner"] is not None:
 			raise Exception("Entry has both personal_owner and group_owner")
 
-		return user	
+		return user
 
 	return _parse_file(filename, parse_users_entry)
 
@@ -88,7 +88,7 @@ def _parse_log_file(filename):
 		l = line.split(":")
 		if len(l) != 10:
 			raise Exception("Line has unexpected format")
-		
+
 		user = {}
 		user["account_name"] = l[0]
 		user["group_owner"] = None
@@ -98,7 +98,7 @@ def _parse_log_file(filename):
 			user["group_owner"] = l[1]
 		if l[2] != "(null)":
 			user["id_number"] = l[2]
-	
+
 		# the extra info at the end of the line isn't used
 		#user["staff_approver"] = l[3]
 		#user["staff_machine"] = l[4]
@@ -270,7 +270,7 @@ def filter_ocf_duplicates(approved_users, good_users, ocf_ldap_url, conflict_uid
 
 	for user in good_users:
 		entry = approved_users[user]
-		
+
 		if entry["personal_owner"]:
 			name = 	entry["personal_owner"]
 		elif entry["group_owner"]:
@@ -304,7 +304,7 @@ def filter_registration_status(approved_users, good_users, calnet_ldap_url):
 	baseDN = "dc=berkeley,dc=edu"
 	searchScope = ldap.SCOPE_SUBTREE
 	retrieveAttrs = ["berkeleyEduAffiliations", "displayName"]
-	
+
 	for user in good_users:
 		entry = approved_users[user]
 		if not entry["personal_owner"]:
@@ -323,9 +323,9 @@ def filter_registration_status(approved_users, good_users, calnet_ldap_url):
 				result = ldap_results[0][1]
 				if "STUDENT-TYPE-REGISTERED" not in result["berkeleyEduAffiliations"]:
 					print "%s (%s) requested %s, but is not a registered student: %s" % \
-						(result["displayName"][0], 
+						(result["displayName"][0],
 						entry["personal_owner"],
-						entry["account_name"], 
+						entry["account_name"],
 						result["berkeleyEduAffiliations"])
 					if not prompt_returns_yes("Approve?"):
 						problem_users.add(user)
@@ -383,7 +383,7 @@ def main():
 	print "Checking for CalNet UID duplicates"
 	run_filter(filter_calnet_uid_duplicates, [approved_users, good_users], good_users, problem_users)
 	print
-	
+
 	print "Checking for email address duplicates"
 	run_filter(filter_email_duplicates, [approved_users, good_users], good_users, problem_users)
 	print
@@ -401,7 +401,7 @@ def main():
 	print "Checking requested usernames"
 	run_filter(filter_usernames_manually, [approved_users, good_users], good_users, problem_users)
 	print
-	
+
 	# done with filtering
 	# now we write to file
 
