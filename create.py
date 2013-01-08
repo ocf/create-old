@@ -14,7 +14,6 @@ import os
 import shutil
 import argparse
 from datetime import datetime
-import stat
 from pwd import getpwnam
 from grp import getgrnam
 
@@ -40,10 +39,11 @@ def _associate_calnet(username):
 def _check_username(username):
     pass
 
+def _homedir(username):
+    return os.path.sep + os.path.join("home", username[0], username[:2], username)
+
 def _ldap_add(username, real_name, university_id, calnet_entry = "",
               shell = "/bin/bash"):
-    home = os.path.sep + os.path.join("home", username[0], username[:2], username)
-
     dn = "uid={username},ou=People,dc=OCF,dc=Berkeley,dc=EDU".format(username = username)
     attrs = {"objectClass": "ocfAccount",
              "objectClass": "account",
@@ -52,7 +52,7 @@ def _ldap_add(username, real_name, university_id, calnet_entry = "",
              "uid": username,
              "uidNumber": university_id,
              "gidNumber": 20,
-             "homeDirectory": home,
+             "homeDirectory": _homedir(username),
              "loginShell": shell,
              "gecos": "{} {}".format(real_name, calnet_entry) # What is this???
              }
@@ -63,19 +63,32 @@ def _ldap_add(username, real_name, university_id, calnet_entry = "",
 
 def _forward_add(user):
     if user["forward"]:
-        forward = os.path.sep + \
-          os.path.join(home, user["username"][0],
-                       user["username"][:2], username, ".forward")
+        forward = os.path.join(_homedir(user["username"]), ".forward")
 
         with open(forward, "w") as f:
             f.write(user["email"] + "\n")
 
         os.chown(forward, getpwnam(user["username"]), getgrnam("ocf"))
 
-def _homedir_add(username):
-    firstchar = username[0]
-    firsttwochar = username[:2]
-    pass
+def _httpdir(username):
+    return os.path.sep + os.path.join("services", "http", "users", username[0], username)
+
+def _homedir_add(user):
+    home = _homedir(user["username"])
+    http = _httpdir(user["username"])
+
+    os.makedirs(home)
+    os.makedirs(http)
+
+    os.chown(home, getpwnam(user["username"]), getgrnam("ocf"))
+    os.chown(http, getpwnam(user["username"]), getgrnam("ocf"))
+
+    os.chmod(home, 0700)
+    os.chmod(http, 0000)
+
+    for name in [".cshrc", ".bashrc", ".bash_profile", ".bash_logout"]:
+        shutil.copy2(os.path.join(rc, name), home)
+        os.chmod(os.path.join(home, name), 0600)
 
 def _kerberos_add(username):
     pass
@@ -125,13 +138,13 @@ def _finish_account_creation(src):
 
     # All this chown / chmod'ing necessary? Aren't we guaranteed to be running as root?
     os.chown(dest, getpwnam("root").pw_uid, getgrnam("root").gr_gid)
-    os.chmod(dest, stat.S_IRUSR)
+    os.chmod(dest, 0600)
 
     with open(src, "a"):
         pass
 
     os.chown(src, getpwnam("root").pw_uid, getgrnam("root").gr_gid)
-    os.chmod(src, stat.S_IRUSR)
+    os.chmod(src, 0600)
 
 def _get_max_uid_number():
     entries = LDAP_CON.search_st("ou=People,dc=OCF,dc=Berkeley,dc=EDU",
