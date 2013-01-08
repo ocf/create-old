@@ -11,12 +11,21 @@ User creation tool.
 
 import sys
 import os
+import shutil
 import argparse
 from datetime import datetime
+import stat
+from pwd import getpwnam
+from grp import getgrnam
+
+# Email
 import smtplib
 from email.mime.text import MIMEText
 
+# LDAP
 import ldap
+
+# Password decryption
 from Crypto.Cipher import PKCS1_OAEP
 from Crypto.PublicKey import RSA
 
@@ -101,8 +110,22 @@ def _sendemails(users):
 def _email_problems():
     pass
 
-def _finish_account_creation():
-    pass
+def _finish_account_creation(src):
+    now = datetime.now().strftime("%Y-%m-%d")
+    directory, name = os.path.split(source)
+
+    dest = os.path.join(directory, "..", "oldapprovedusers", "{}.{}".format(name, now))
+    shutil.move(src, dest)
+
+    # All this chown / chmod'ing necessary? Aren't we guaranteed to be running as root?
+    os.chown(dest, getpwnam("root").pw_uid, getgrnam("root").gr_gid)
+    os.chmod(dest, stat.S_IRUSR)
+
+    with open(src, "a"):
+        pass
+
+    os.chown(src, getpwnam("root").pw_uid, getgrnam("root").gr_gid)
+    os.chmod(src, stat.S_IRUSR)
 
 def _get_max_uid_number():
     entries = LDAP_CON.search_st("ou=People,dc=OCF,dc=Berkeley,dc=EDU",
