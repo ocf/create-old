@@ -12,6 +12,9 @@ User creation tool.
 import sys
 import os
 import argparse
+from datetime import datetime
+import smtplib
+from email.mime.text import MIMEText
 
 import ldap
 from Crypto.Cipher import PKCS1_OAEP
@@ -62,8 +65,38 @@ def _homedir_add(username):
 def _kerberos_add(username):
     pass
 
-def _sendemail(username):
-    pass
+def _sendemails(users):
+    """
+    Notify users and staff that accounts were created.
+    """
+
+    created_text = open(ACCOUNT_CREATED_LETTER).read()
+    s = smtplib.SMTP("localhost")
+    me = "OCF staff <help@ocf.berkeley.edu>"
+    staff = "staff@ocf.berkeley.edu"
+
+    for user in users:
+        msg = MIMEText(CREATED_TXT.format(username = user["username"]))
+        msg["Subject"] = "OCF account created"
+        msg["From"] = me
+        msg["To"] = user["email"]
+
+        s.sendmail(me, [user["email"]], msg.as_string())
+
+    # Notify staff of all the created accounts
+    body = "Accounts created on {}:\n".format(datetime.now())
+
+    for user in users:
+        body += "{}: {}\n".format(user["username"], user["real_name"])
+
+    msg = MIMEText(body)
+    msg["Subject"] = "Created OCF accounts"
+    msg["From"] = me
+    msg["To"] = staff
+
+    s.sendmail(me, [staff], msg.as_string())
+
+    s.quit()
 
 def _email_problems():
     pass
