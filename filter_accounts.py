@@ -260,7 +260,7 @@ def filter_ocf_duplicates(approved_users, good_users, ocf_ldap_url, conflict_uid
 	try:
 		l = ldap.initialize(ocf_ldap_url)
 		l.protocol_version = ldap.VERSION3
-	except ldap.LDAPError, e:
+	except ldap.LDAPError as e:
 		print e
 
 	problem_users = set()
@@ -288,7 +288,7 @@ def filter_ocf_duplicates(approved_users, good_users, ocf_ldap_url, conflict_uid
 					print "Possible existing account [req-fullname, req-username, coll-uid, coll-fullname]: %s, %s, %s, %s" % (name, user, conflicting_uid_number, conflicting_entry["cn"][0])
 					if not prompt_returns_yes("Approve?"):
 						problem_users.add(user)
-		except ldap.LDAPError, e:
+		except ldap.LDAPError as e:
 			print e
 
 	return problem_users
@@ -297,7 +297,7 @@ def filter_registration_status(approved_users, good_users, calnet_ldap_url):
 	try:
 		l = ldap.initialize(calnet_ldap_url)
 		l.protocol_version = ldap.VERSION3
-	except ldap.LDAPError, e:
+	except ldap.LDAPError as e:
 		print e
 
 	problem_users = set()
@@ -329,7 +329,7 @@ def filter_registration_status(approved_users, good_users, calnet_ldap_url):
 						result["berkeleyEduAffiliations"])
 					if not prompt_returns_yes("Approve?"):
 						problem_users.add(user)
-		except ldap.LDAPError, e:
+		except ldap.LDAPError as e:
 			print e
 	return problem_users
 
