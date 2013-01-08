@@ -28,7 +28,8 @@ import ldap
 from Crypto.Cipher import PKCS1_OAEP
 from Crypto.PublicKey import RSA
 
-ACCOUNT_CREATED_LETTER = "txt/acct.created.letter"
+ACCOUNT_CREATED_LETTER = os.path.join(os.path.dirname(__file__),
+                                      "txt", "acct.created.letter")
 
 LDAP_CON = None
 RSA_CIPHER = None
@@ -96,7 +97,7 @@ def _homedir_add(user):
     os.chmod(http, 0000)
 
     for name in [".cshrc", ".bashrc", ".bash_profile", ".bash_logout"]:
-        shutil.copy2(os.path.join(rc, name), home)
+        shutil.copy2(os.path.join(os.path.dirname(__file__), rc, name), home)
         os.chmod(os.path.join(home, name), 0600)
 
 def _kerberos_add(username):
@@ -228,6 +229,7 @@ def main(args):
 
             password = base64.b64encode(_decrypt_password(password, parser.rsa_priv_key))
 
+            # Filter into auto-accepted, needs-staff-approval, and rejected
             if bool(int(group)):
                 _process_group(username, group_name, email, forward,
                                password, university_id)
