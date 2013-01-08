@@ -21,6 +21,8 @@ from grp import getgrnam
 import smtplib
 from email.mime.text import MIMEText
 
+import filter_accounts
+
 # LDAP
 import ldap
 
@@ -97,8 +99,9 @@ def _homedir_add(user):
     os.chmod(http, 0000)
 
     for name in [".cshrc", ".bashrc", ".bash_profile", ".bash_logout"]:
-        dest = os.path.join(home, name)
         shutil.copy2(os.path.join(os.path.dirname(__file__), rc, name), home)
+
+        dest = os.path.join(home, name)
         os.chown(dest, getpwnam(user["username"]).pw_uid, getgrnam("ocf").gr_gid)
         os.chmod(dest, 0600)
 
@@ -226,13 +229,30 @@ def main(args):
     # Process all of the requested accounts
     for f in parsed.approved:
         for line in f:
-            username, real_name, group_name, email, forward, \
-              group, password, key, university_id = line.split(":")
+            line = line.strip()
 
-            password = base64.b64encode(_decrypt_password(password, parser.rsa_priv_key))
+            if not line:
+                continue
+
+            split = line.split(":")
+
+            fields = ["username", "real_name", "group_name", "email",
+                      "forward", "group", "password", "key", "university_id"]
+
+            if len(split) != len(fields):
+                print "line has incorrect number of fields:", line
+
+            # Construct the user object, a dictionary of the different attributes
+            # for the account to be created.
+            user = dict(key, value for key, value in zip(fields, split))
+
+            user["password"] = \
+              base64.b64encode(_decrypt_password(user["password"], parser.rsa_priv_key))
+            user["forward"] = bool(int(user["forward"]))
+            user["group"] = bool(int(user["group"]))
 
             # Filter into auto-accepted, needs-staff-approval, and rejected
-            if bool(int(group)):
+            if user["group"]:
                 _process_group(username, group_name, email, forward,
                                password, university_id)
             else:
