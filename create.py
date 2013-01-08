@@ -97,8 +97,10 @@ def _homedir_add(user):
     os.chmod(http, 0000)
 
     for name in [".cshrc", ".bashrc", ".bash_profile", ".bash_logout"]:
+        dest = os.path.join(home, name)
         shutil.copy2(os.path.join(os.path.dirname(__file__), rc, name), home)
-        os.chmod(os.path.join(home, name), 0600)
+        os.chown(dest, getpwnam(user["username"]).pw_uid, getgrnam("ocf").gr_gid)
+        os.chmod(dest, 0600)
 
 def _kerberos_add(username):
     pass
