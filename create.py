@@ -9,13 +9,14 @@ User creation tool.
 # python-ldap
 # pycrypto
 
-import sys
+import argparse
+import fcntl
 import os
 import shutil
-import argparse
+import sys
 from datetime import datetime
-from pwd import getpwnam
 from grp import getgrnam
+from pwd import getpwnam
 
 # Email
 import smtplib
@@ -227,7 +228,8 @@ def main(args):
     LDAP_CON.simple_bind_s('','')
 
     # Process all of the requested accounts
-    for f in parsed.approved:
+    with open(parsed.users_file) as f:
+        fcntl.flock(f, fnctl.LOCK_EX)
         for line in f:
             line = line.strip()
 
@@ -258,6 +260,7 @@ def main(args):
             else:
                 _process_user(username, real_name, email, forward,
                               password, university_id)
+        fcntl.flock(f, fnctl.LOCK_UN)
 
     # Dump the new account requests
 
