@@ -40,7 +40,16 @@ def _check_username(username):
     pass
 
 def _homedir(username):
+    """
+    Returns the user's home directory: "/home/u/us/username".
+    """
     return os.path.sep + os.path.join("home", username[0], username[:2], username)
+
+def _httpdir(username):
+    """
+    Returns the user's http directory: "/services/http/users/u/username".
+    """
+    return os.path.sep + os.path.join("services", "http", "users", username[0], username)
 
 def _ldap_add(username, real_name, university_id, calnet_entry = "",
               shell = "/bin/bash"):
@@ -69,9 +78,6 @@ def _forward_add(user):
             f.write(user["email"] + "\n")
 
         os.chown(forward, getpwnam(user["username"]), getgrnam("ocf"))
-
-def _httpdir(username):
-    return os.path.sep + os.path.join("services", "http", "users", username[0], username)
 
 def _homedir_add(user):
     home = _homedir(user["username"])
