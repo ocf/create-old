@@ -61,10 +61,16 @@ def _ldap_add(username, real_name, university_id, calnet_entry = "",
     ldif = ldap.modlist.addModlist(attrs)
     LDAP_CONN.add_s(dn, ldif)
 
-def _forward_add(username):
-    firstchar = username[0]
-    firsttwochar = username[:2]
-    pass
+def _forward_add(user):
+    if user["forward"]:
+        forward = os.path.sep + \
+          os.path.join(home, user["username"][0],
+                       user["username"][:2], username, ".forward")
+
+        with open(forward, "w") as f:
+            f.write(user["email"] + "\n")
+
+        os.chown(forward, getpwnam(user["username"]), getgrnam("ocf"))
 
 def _homedir_add(username):
     firstchar = username[0]
