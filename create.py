@@ -10,8 +10,6 @@ User creation tool.
 # pycrypto
 
 import argparse
-from contextlib import contextmanager
-import fcntl
 import os
 import shutil
 import sys
@@ -24,18 +22,11 @@ import smtplib
 from email.mime.text import MIMEText
 
 import filter_accounts
-
-# LDAP
-import ldap
-
-# Password decryption
-from Crypto.Cipher import PKCS1_OAEP
-from Crypto.PublicKey import RSA
+from utils import get_users, LDAPAction, decrypt_password, fancy_open
 
 ACCOUNT_CREATED_LETTER = os.path.join(os.path.dirname(__file__),
                                       "txt", "acct.created.letter")
 
-RSA_CIPHER = None
 MID_APPROVAL = [] # A list of accounts in the mid stage of approval, to prevent dups
 
 def _associate_calnet(username):
@@ -184,32 +175,6 @@ def _process_user(username, real_name, email, forward, password, university_id,
 
     print "user", username
 
-def _decrypt_password(password, priv_key):
-    # Use an asymmetric encryption algorithm to allow the keys to be stored on disk
-    # Generate the public / private keys with the following code:
-    # >>> from Crypto.PublicKey import RSA
-    # >>> key = RSA.generate(2048)
-    # >>> open("private.pem", "w").write(key.exportKey())
-    # >>> open("public.pem", "w").write(key.publickey().exportKey())
-
-    global RSA_CIPHER
-
-    if RSA_CIPHER is None:
-        key = RSA.importKey(open(priv_key).read())
-        RSA_CIPHER = PKCS1_OAEP.new(key)
-
-    return RSA_CIPHER.decrypt(password)
-
-class LDAPAction(argparse.Action):
-    def __call__(self, parser, namespace, values, option_string = None):
-        # Connect to LDAP
-        connection = ldap.initialize(values)
-
-        # if option_string in ["-c", "--calnetldap"]: use different credentials?
-        connection.simple_bind_s('','')
-
-        setattr(namespace, self.dest, connection)
-
 def _create_parser():
     parser = argparse.ArgumentParser(description = 'Process and create user accounts.')
     parser.add_option("-u", "--usersfile", dest = "users_file",
@@ -240,56 +205,6 @@ def _create_parser():
                       help = "Lower bound for OCF name collision detection")
     return parser
 
-def _get_users(stream, options):
-    fields = ("username", "real_name", "group_name", "email",
-              "forward", "group", "password", "key", "university_id")
-
-    for line in stream:
-        line = line.strip()
-
-        if not line:
-            continue
-
-        split = line.split(":")
-
-        if len(split) != len(fields):
-            print >>sys.stderr, "line has incorrect number of fields:", line # log.warn?
-            sys.exit()
-
-        # Construct the user object, a dictionary of the different attributes
-        # for the account to be created.
-        user = dict(key, value for key, value in zip(fields, split))
-
-        user["password"] = \
-          base64.b64encode(_decrypt_password(user["password"], options.rsa_priv_key))
-        user["forward"] = bool(int(user["forward"]))
-        user["group"] = bool(int(user["group"]))
-
-        yield user
-
-@contextmanager
-def fancy_open(path, mode = "r", lock = False, delete = False):
-    """
-    Open path as a file with mode. Combatible with python's with statement.
-
-    Gives options to lock the file and delete after closing.
-    """
-    f = open(path, mode)
-
-    if lock:
-        fcntl.flock(f, fnctl.LOCK_EX)
-    try:
-        yield f
-    finally:
-        f.close()
-
-        if lock:
-            fcntl.flock(f, fnctl.LOCK_UN)
-
-        # Race condition here? Can we remove a file before we unlock it?
-        if delete:
-            os.remove(path)
-
 def main(args):
     """
     Process a file contain a list of user accounts to create.
@@ -299,7 +214,7 @@ def main(args):
 
     # Process the users in the mid stage of approval first
     with fancy_open(options.mid_approve, lock = True, delete = True) as f:
-        for user in _get_users(f, options):
+        for user in get_users(f, options):
             if user["group"]:
                 _finalize_group(user, options)
             else:
@@ -307,7 +222,7 @@ def main(args):
 
     # Process all of the recently requested accounts
     with fancy_open(options.users_file, lock = True, delete = True) as f:
-        for user in _get_users(f, options):
+        for user in get_users(f, options):
             if user["group"]:
                 _process_group(username, group_name, email, forward,
                                password, university_id, options)
