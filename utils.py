@@ -50,6 +50,7 @@ class LDAPAction(argparse.Action):
 
         # if option_string in ["-c", "--calnetldap"]: use different credentials?
         connection.simple_bind_s('','')
+        connect.protocol_version = ldap.VERSION3
 
         setattr(namespace, self.dest, connection)
 
