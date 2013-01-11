@@ -4,6 +4,7 @@ Utility functions for account creation.
 
 import argparse
 from contextlib import contextmanager
+import errno
 import fcntl
 import os
 import sys
@@ -80,24 +81,31 @@ def get_users(stream, options):
         yield user
 
 @contextmanager
-def fancy_open(path, mode = "r", lock = False, delete = False):
+def fancy_open(path, mode = "r", lock = False, delete = False, pass_missing = False):
     """
     Open path as a file with mode. Combatible with python's with statement.
 
-    Gives options to lock the file and delete after closing.
+    Gives options to lock the file, delete after closing, and ignore a missing file.
     """
-    f = open(path, mode)
-
-    if lock:
-        fcntl.flock(f, fnctl.LOCK_EX)
     try:
-        yield f
-    finally:
-        f.close()
-
+        f = open(path, mode)
+    except IOError as e:
+        # If we're just reading and pass_missing is set, ignore file missing
+        if not (e.errno == errno.ENOENT and mode == "r" and pass_missing):
+            raise e
+        else:
+            yield []
+    else:
         if lock:
-            fcntl.flock(f, fnctl.LOCK_UN)
+            fcntl.flock(f, fnctl.LOCK_EX)
+        try:
+            yield f
+        finally:
+            f.close()
 
-        # Race condition here? Can we remove a file before we unlock it?
-        if delete:
-            os.remove(path)
+            if lock:
+                fcntl.flock(f, fnctl.LOCK_UN)
+
+            # Race condition here? Can we remove a file before we unlock it?
+            if delete:
+                os.remove(path)

@@ -213,7 +213,8 @@ def main(args):
     options = _create_parser().parse_args()
 
     # Process the users in the mid stage of approval first
-    with fancy_open(options.mid_approve, lock = True, delete = True) as f:
+    with fancy_open(options.mid_approve, lock = True,
+                    delete = True, pass_missing = True) as f:
         for user in get_users(f, options):
             if user["group"]:
                 _finalize_group(user, options)
@@ -221,7 +222,8 @@ def main(args):
                 _finalize_user(user, options)
 
     # Process all of the recently requested accounts
-    with fancy_open(options.users_file, lock = True, delete = True) as f:
+    with fancy_open(options.users_file, lock = True,
+                    delete = True, pass_missing = True) as f:
         for user in get_users(f, options):
             if user["group"]:
                 _process_group(username, group_name, email, forward,
