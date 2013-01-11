@@ -1,4 +1,7 @@
-#!/usr/bin/env python
+"""
+Module to filter user accounts into good users, problematic users, and users that
+require manual staff approval.
+"""
 
 import ldap
 import os
