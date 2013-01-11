@@ -18,7 +18,7 @@ from Crypto.PublicKey import RSA
 
 RSA_CIPHER = None
 
-def decrypt_password(password, priv_key):
+def _decrypt_password(password, priv_key):
     """
     Decrypt passwords using PKCS1_OAEP.
 
@@ -72,7 +72,7 @@ def get_users(stream, options):
         # for the account to be created.
         user = dict((key, value) for key, value in zip(fields, split))
 
-        user["password"] = \
+        user["password_decrypted"] = \
           base64.b64encode(_decrypt_password(user["password"], options.rsa_priv_key))
         user["forward"] = bool(int(user["forward"]))
         user["is_group"] = bool(int(user["is_group"]))
@@ -81,6 +81,34 @@ def get_users(stream, options):
             raise Exception("Entry is missing personal_owner and group_owner")
         if user["personal_owner"] is not None and user["group_owner"] is not None:
             raise Exception("Entry has both personal_owner and group_owner")
+
+        yield user
+
+def get_log_entries(stream):
+    for line in stream:
+        line = line.strip()
+
+        if not line:
+            continue
+
+        l = line.split(":")
+
+        if len(l) != 10:
+            raise Exception("Line has unexpected format")
+
+        user = {}
+        user["account_name"] = l[0]
+        user["group_owner"] = None
+        user["id_number"] = None # can be calnet uid or student id (old)
+
+        if l[1] != "(null)":
+            user["group_owner"] = l[1]
+        if l[2] != "(null)":
+            user["id_number"] = l[2]
+
+        # the extra info at the end of the line isn't used
+        # user["staff_approver"] = l[3]
+        # user["staff_machine"] = l[4]
 
         yield user
 
