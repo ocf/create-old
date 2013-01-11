@@ -2,12 +2,9 @@
 
 from subprocess import Popen, PIPE
 import ldap
-import pwd, grp
 import os
 import sys
-import optparse
-import shlex
-
+i
 from utils import get_log_entries
 
 def _get_max_uid_number(connection):
@@ -21,7 +18,8 @@ def _get_max_uid_number(connection):
 
 def prompt_returns_yes(prompt):
     if prompt[-1] != " ":
-        prompt = "%s " % prompt
+        prompt += " "
+
     ret = raw_input(prompt).strip()
     if len(ret):
         ret = ret[0]
