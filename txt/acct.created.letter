@@ -2,7 +2,7 @@ Greetings from the Grotto of Hearst Gym,
 
 Your OCF account has been created and is ready for use.
 
-Your username is: %%username%%.
+Your account name is: {account_name}.
 For information about account passwords, please see:
     http://docs.ocf.berkeley.edu/wiki/Passwords
 
@@ -62,7 +62,7 @@ interested.
 
 If you have any other questions or problems, feel free to email us at
 help@ocf.berkeley.edu.
- 
+
 -OCF staff
 
 The Open Computing Facility is an all-volunteer, student-run service

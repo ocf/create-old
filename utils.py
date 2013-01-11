@@ -54,8 +54,8 @@ class LDAPAction(argparse.Action):
         setattr(namespace, self.dest, connection)
 
 def get_users(stream, options):
-    fields = ("username", "real_name", "group_name", "email",
-              "forward", "group", "password", "key", "university_id")
+    fields = ("account_name", "personal_owner", "group_owner", "email",
+              "forward", "is_group", "password", "key", "calnet_uid")
 
     for line in stream:
         line = line.strip()
@@ -66,8 +66,7 @@ def get_users(stream, options):
         split = line.split(":")
 
         if len(split) != len(fields):
-            print >>sys.stderr, "line has incorrect number of fields:", line # log.warn?
-            sys.exit()
+            raise Exception("Incorrect number of fields: {}".format(line))
 
         # Construct the user object, a dictionary of the different attributes
         # for the account to be created.
@@ -76,7 +75,12 @@ def get_users(stream, options):
         user["password"] = \
           base64.b64encode(_decrypt_password(user["password"], options.rsa_priv_key))
         user["forward"] = bool(int(user["forward"]))
-        user["group"] = bool(int(user["group"]))
+        user["is_group"] = bool(int(user["is_group"]))
+
+        if user["personal_owner"] is None and user["group_owner"] is None:
+            raise Exception("Entry is missing personal_owner and group_owner")
+        if user["personal_owner"] is not None and user["group_owner"] is not None:
+            raise Exception("Entry has both personal_owner and group_owner")
 
         yield user
 
