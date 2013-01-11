@@ -81,7 +81,7 @@ def _forward_add(user):
 def _write_heimdal_dump_file(filename, users_list):
     with open(filename, "w") as f:
         for user in users_list:
-            f.write("%(account_name)s %(password)s\n" % user
+            f.write("%(account_name)s %(password)s\n") % user
 
 def _kerberos_add(user):
     password = \
