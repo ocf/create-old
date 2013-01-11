@@ -48,61 +48,6 @@ def _parse_file(filename, parser_function):
             entries.append(parser_function(line))
     return entries
 
-def _parse_users_file(filename):
-    def parse_users_entry(line):
-        l = line.split(":")
-        if len(l) != 9:
-            raise Exception("Line has unexpected format")
-
-        user = {}
-        user["account_name"] = l[0]
-        user["personal_owner"] = None
-        user["group_owner"] = None
-        user["email"] = l[3]
-        user["forward_email"] = l[4] == "1"
-        user["is_group_account"] = l[5] == "1"
-        user["heimdal_secret"] = l[6]
-        user["heimdal_key"] = l[7]
-        user["calnet_uid"] = l[8]
-
-        if l[1] != "(null)":
-            user["personal_owner"] = l[1]
-        if l[2] != "(null)":
-            user["group_owner"] = l[2]
-
-        if user["personal_owner"] is None and user["group_owner"] is None:
-            raise Exception("Entry is missing personal_owner and group_owner")
-        if user["personal_owner"] is not None and user["group_owner"] is not None:
-            raise Exception("Entry has both personal_owner and group_owner")
-
-        return user
-
-    return _parse_file(filename, parse_users_entry)
-
-def _parse_log_file(filename):
-    def parse_log_entry(line):
-        l = line.split(":")
-        if len(l) != 10:
-            raise Exception("Line has unexpected format")
-
-        user = {}
-        user["account_name"] = l[0]
-        user["group_owner"] = None
-        user["id_number"] = None # can be calnet uid or student id (old)
-
-        if l[1] != "(null)":
-            user["group_owner"] = l[1]
-        if l[2] != "(null)":
-            user["id_number"] = l[2]
-
-        # the extra info at the end of the line isn't used
-        #user["staff_approver"] = l[3]
-        #user["staff_machine"] = l[4]
-
-        return user
-
-    return _parse_file(filename, parse_log_entry)
-
 def _write_file(filename, template_function, list_of_data):
     with open(filename, "w") as f:
         for data in list_of_data:
