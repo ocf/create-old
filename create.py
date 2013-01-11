@@ -10,6 +10,7 @@ User creation tool.
 # pycrypto
 
 import argparse
+from contextlib import contextmanager
 import fcntl
 import os
 import shutil
@@ -34,8 +35,8 @@ from Crypto.PublicKey import RSA
 ACCOUNT_CREATED_LETTER = os.path.join(os.path.dirname(__file__),
                                       "txt", "acct.created.letter")
 
-LDAP_CON = None
 RSA_CIPHER = None
+MID_APPROVAL = [] # A list of accounts in the mid stage of approval, to prevent dups
 
 def _associate_calnet(username):
     pass
@@ -171,10 +172,16 @@ def _get_max_uid_number():
 
     return max(uid_numbers)
 
-def _process_group(username, group_name, email, forward, password, university_id):
+def _process_group(username, group_name, email, forward, password, university_id,
+                   options):
     print "group", group_name
 
-def _process_user(username, real_name, email, forward, password, university_id):
+def _process_user(username, real_name, email, forward, password, university_id,
+                  options):
+    """
+    Filter into auto-accepted, needs-staff-approval, and rejected.
+    """
+
     print "user", username
 
 def _decrypt_password(password, priv_key):
@@ -193,11 +200,27 @@ def _decrypt_password(password, priv_key):
 
     return RSA_CIPHER.decrypt(password)
 
+class LDAPAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string = None):
+        # Connect to LDAP
+        connection = ldap.initialize(values)
+
+        # if option_string in ["-c", "--calnetldap"]: use different credentials?
+        connection.simple_bind_s('','')
+
+        setattr(namespace, self.dest, connection)
+
 def _create_parser():
     parser = argparse.ArgumentParser(description = 'Process and create user accounts.')
     parser.add_option("-u", "--usersfile", dest = "users_file",
                       default = "/opt/adm/approved.users",
                       help = "Input file of approved users")
+    parser.add_option("-m", "--midapprove", dest = "mid_approve",
+                      default = "/opt/adm/mid_approved.users",
+                      help = "Input file of users in mid stage of approval")
+    parser.add_option("-s", "--staffapprove", dest = "staff_approve",
+                      default = "/opt/adm/staff_approve.users",
+                      help = "Output file for users requiring manual staff approval")
     parser.add_option("-l", "--logfile", dest = "log_file",
                       default = "/opt/adm/approved.log",
                       help = "Input file of approved log")
@@ -206,8 +229,10 @@ def _create_parser():
                       help = "Private key to decrypt user passwords")
     parser.add_option("-c", "--calnetldap", dest = "calnet_ldap_url",
                       default = "ldap://169.229.218.90",
+                      action = LDAPAction,
                       help = "Url of CalNet's LDAP")
     parser.add_option("-o", "--ocfldap", dest = "ocf_ldap_url",
+                      action = LDAPAction,
                       default = "ldaps://ldap.ocf.berkeley.edu",
                       help = "Url of OCF's LDAP")
     parser.add_option("-b", "--uidlowerbound", dest = "conflict_uid_lower_bound",
@@ -215,56 +240,80 @@ def _create_parser():
                       help = "Lower bound for OCF name collision detection")
     return parser
 
+def _get_users(stream, options):
+    fields = ("username", "real_name", "group_name", "email",
+              "forward", "group", "password", "key", "university_id")
+
+    for line in stream:
+        line = line.strip()
+
+        if not line:
+            continue
+
+        split = line.split(":")
+
+        if len(split) != len(fields):
+            print >>sys.stderr, "line has incorrect number of fields:", line # log.warn?
+            sys.exit()
+
+        # Construct the user object, a dictionary of the different attributes
+        # for the account to be created.
+        user = dict(key, value for key, value in zip(fields, split))
+
+        user["password"] = \
+          base64.b64encode(_decrypt_password(user["password"], options.rsa_priv_key))
+        user["forward"] = bool(int(user["forward"]))
+        user["group"] = bool(int(user["group"]))
+
+        yield user
+
+@contextmanager
+def fancy_open(path, mode = "r", lock = False, delete = False):
+    """
+    Open path as a file with mode. Combatible with python's with statement.
+
+    Gives options to lock the file and delete after closing.
+    """
+    f = open(path, mode)
+
+    if lock:
+        fcntl.flock(f, fnctl.LOCK_EX)
+    try:
+        yield f
+    finally:
+        f.close()
+
+        if lock:
+            fcntl.flock(f, fnctl.LOCK_UN)
+
+        # Race condition here? Can we remove a file before we unlock it?
+        if delete:
+            os.remove(path)
+
 def main(args):
     """
     Process a file contain a list of user accounts to create.
     """
 
-    parsed = _create_parser().parse_args()
+    options = _create_parser().parse_args()
 
-    # Connect to LDAP
-    global LDAP_CON
-    LDAP_CON = ldap.initialize(parser.ldap)
-    LDAP_CON.simple_bind_s('','')
+    # Process the users in the mid stage of approval first
+    with fancy_open(options.mid_approve, lock = True, delete = True) as f:
+        for user in _get_users(f, options):
+            if user["group"]:
+                _finalize_group(user, options)
+            else:
+                _finalize_user(user, options)
 
-    # Process all of the requested accounts
-    with open(parsed.users_file) as f:
-        fcntl.flock(f, fnctl.LOCK_EX)
-        for line in f:
-            line = line.strip()
-
-            if not line:
-                continue
-
-            split = line.split(":")
-
-            fields = ["username", "real_name", "group_name", "email",
-                      "forward", "group", "password", "key", "university_id"]
-
-            if len(split) != len(fields):
-                print "line has incorrect number of fields:", line
-
-            # Construct the user object, a dictionary of the different attributes
-            # for the account to be created.
-            user = dict(key, value for key, value in zip(fields, split))
-
-            user["password"] = \
-              base64.b64encode(_decrypt_password(user["password"], parser.rsa_priv_key))
-            user["forward"] = bool(int(user["forward"]))
-            user["group"] = bool(int(user["group"]))
-
-            # Filter into auto-accepted, needs-staff-approval, and rejected
+    # Process all of the recently requested accounts
+    with fancy_open(options.users_file, lock = True, delete = True) as f:
+        for user in _get_users(f, options):
             if user["group"]:
                 _process_group(username, group_name, email, forward,
-                               password, university_id)
+                               password, university_id, options)
             else:
                 _process_user(username, real_name, email, forward,
-                              password, university_id)
-        fcntl.flock(f, fnctl.LOCK_UN)
-
-    # Dump the new account requests
-
-    # Clear the input files
+                              password, university_id, options)
 
 if __name__ == "__main__":
     main(sys.argv)
