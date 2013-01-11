@@ -8,6 +8,8 @@ import sys
 import optparse
 import shlex
 
+from utils import get_log_entries
+
 def _create_parser():
     parser = optparse.OptionParser()
     parser.add_option("-u", "--usersfile", dest="users_file",
@@ -52,72 +54,6 @@ def _write_file(filename, template_function, list_of_data):
     with open(filename, "w") as f:
         for data in list_of_data:
             f.write(template_function(data))
-
-def _write_approved_users_file(filename, users_list):
-    def _write_approved_users_line(user):
-        return "%s:%s:%s:%s:%s:%s:%s:%s:%s\n" % \
-            (user["account_name"],
-            user["personal_owner"] if user["personal_owner"] else "(null)",
-            user["group_owner"] if user["group_owner"] else "(null)",
-            user["email"],
-            "1" if user["forward_email"] else "0",
-            "1" if user["is_group_account"] else "0",
-            user["heimdal_secret"],
-            user["heimdal_key"],
-            user["calnet_uid"])
-    return _write_file(filename, _write_approved_users_line, users_list)
-
-def _write_ldif_file(filename, users_list):
-    def _write_ldif_line(user):
-        return_dict = {
-    "username": user["account_name"],
-    "realname": user["personal_owner"] or user["group_owner"],
-    "uidnumber": user["uid_number"],
-    "firstletter": user["account_name"][0],
-    "twoletters": user["account_name"][0:2]
-    }
-        if user.has_key("calnet_uid") and user["calnet_uid"].isdigit():
-            return_dict["calnet_entry"] = "\ncalNetuid: %s" % user["calnet_uid"]
-        else:
-            return_dict["calnet_entry"] = ""
-
-
-        return """
-dn: uid=%(username)s,ou=People,dc=OCF,dc=Berkeley,dc=EDU
-objectClass: ocfAccount
-objectClass: account
-objectClass: posixAccount
-cn: %(realname)s
-uid: %(username)s
-uidNumber: %(uidnumber)s
-gidNumber: 20
-homeDirectory: /home/%(firstletter)s/%(twoletters)s/%(username)s
-loginShell: /bin/bash
-gecos: %(realname)s %(calnet_entry)s
-
-""" % return_dict
-    return _write_file(filename, _write_ldif_line, users_list)
-
-def _write_bat_file(filename, users_list):
-    def _write_bat_line(user):
-        first_name = ""
-        last_name = ""
-        full_name = user["personal_owner"] or user["group_owner"]
-        if user["personal_owner"]:
-            split_full_name = full_name.split(" ")
-            first_name = split_full_name[0]
-            last_name = split_full_name[-1]
-        else:
-            first_name = full_name
-            last_name = full_name
-        return "dsadd user \"CN=%(username)s,OU=people,DC=lab,DC=ocf,DC=berkeley,DC=edu\" -fn \"%(firstname)s\" -ln \"%(lastname)s\" -display \"%(realname)s\" -pwd \"%(password)s\" -profile \\BIOHAZARD\RoamingProfiles\$username$ -canchpwd yes -mustchpwd no -pwdneverexpires yes\n" % \
-            {"username": user["account_name"],
-            "firstname": first_name,
-            "lastname": last_name,
-            "realname": full_name,
-            "password": user["password"]}
-
-    return _write_file(filename, _write_bat_line, users_list)
 
 def _write_heimdal_dump_file(filename, users_list):
     def _write_heimdal_dump_line(user):
@@ -291,34 +227,28 @@ def filter_accounts(users, options):
     Filter accounts into auto-accepted, needs-staff-approval, and rejected.
     """
 
-    parser = _create_parser()
-    (options, args) = parser.parse_args()
-
     approved_users = {} # dict from account name => users_entry
-    good_users = set() # set of account_names (strings)
-    problem_users = set()
+    accepted = set() # set of account_names (strings)
+    needs_staff_approval = set()
+    rejected = set()
 
     print "Getting current max uid ..."
     max_uid = _get_max_uid_number(options.ocf_ldap_url)
-    print "UIDs for new users will start at %s" % (max_uid + 1)
+    print "UIDs for new users will start at {}".format(max_uid + 1)
 
-    print "Parsing %s file as approved.log ..." % options.log_file
-    log_entries = _parse_log_file(options.log_file)
+    print "Parsing log entries from {} ...".format(options.log_file)
+    with open(options.log_file) as f:
+        log_entries = get_log_entries(f)
     print
 
-    print "Parsing %s file as approved.users ..." % options.users_file
-    users_entries = _parse_users_file(options.users_file)
-    print
-
-    good_users = set([users_entry["account_name"] for users_entry in users_entries])
+    good_users = set([users_entry["account_name"] for users_entry in users])
 
     print "Checking approved.log for duplicate requests"
     run_filter(filter_log_duplicates, [users_entries, log_entries], good_users, problem_users)
     print
 
     print "Generating approved_users dictionary of account_name => approved.users entry"
-    for users_entry in users_entries:
-        approved_users[users_entry["account_name"]] = users_entry
+    approved_users = dict((user["account_name"], user) for user in users_entries)
     print
 
     print "Checking for real name duplicates"
@@ -362,19 +292,13 @@ def filter_accounts(users, options):
         next_uid += 1
 
     print "Writing tmp/approved.users.bad"
-    _write_approved_users_file("tmp/approved.users.bad", problem_users_entries)
+    with open("tmp/approved.users.bad", "a") as f:
+        write_users(f, problem_users_entries)
     print
 
     print "Writing tmp/approved.users.good"
-    _write_approved_users_file("tmp/approved.users.good", good_users_entries)
-    print
-
-    print "Writing tmp/addusers.ldif"
-    _write_ldif_file("tmp/addusers.ldif", good_users_entries)
-    print
-
-    print "Writing tmp/addusers.bat"
-    _write_bat_file("tmp/addusers.bat", good_users_entries)
+    with open("tmp/approved.users.good", "a") as f:
+        write_users(f, good_users_entries)
     print
 
     print "Writing tmp/heimdal.dump"
