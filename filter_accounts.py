@@ -19,23 +19,6 @@ def _get_max_uid_number(connection):
 
     return max(uid_numbers)
 
-def _parse_file(filename, parser_function):
-    entries = []
-    with open(filename, "r") as f:
-        data = f.read().strip()
-        lines = data.split("\n")
-        for (line_number, line) in zip(range(1, len(lines) + 1), lines):
-            if len(line.strip()) == 0:
-                # ignore empty lines
-                continue
-            try:
-                parsed_entry = parser_function(line)
-            except Exception as e:
-                print "Error parsing line %s: %s" % (line_number, line)
-                raise e
-            entries.append(parser_function(line))
-    return entries
-
 def prompt_returns_yes(prompt):
     if prompt[-1] != " ":
         prompt = "%s " % prompt
