@@ -4,7 +4,7 @@ from subprocess import Popen, PIPE
 import ldap
 import os
 import sys
-i
+
 from utils import get_log_entries
 
 def _get_max_uid_number(connection):
@@ -26,7 +26,7 @@ def prompt_returns_yes(prompt):
 
     return ret.lower() == "y"
 
-def run_filter(filter_func, filter_args, good_users, problem_users):
+def _run_filter(filter_func, filter_args, good_users, problem_users):
     """
     Runs the filter and affects the contents of good_users and problem_users
     """
@@ -34,7 +34,7 @@ def run_filter(filter_func, filter_args, good_users, problem_users):
     good_users.difference_update(filter_results)
     problem_users.update(filter_results)
 
-def filter_log_duplicates(users_entries, log_entries):
+def _filter_log_duplicates(users_entries, log_entries):
     """
     returns the users that fail this filter
     meaning they will NOT be created
@@ -54,7 +54,7 @@ def filter_log_duplicates(users_entries, log_entries):
                 unique_log_names.add(log_entry["account_name"])
     return problem_users
 
-def filter_duplicates(key, approved_users, error_str, good_users, unique_function = lambda x: x):
+def _filter_duplicates(key, approved_users, error_str, good_users, unique_function = lambda x: x):
     problem_users = set()
     unique_values = dict()
     for user in good_users:
@@ -77,29 +77,22 @@ def filter_duplicates(key, approved_users, error_str, good_users, unique_functio
             unique_values[unique_of_entry] = user
     return problem_users
 
-def filter_real_name_duplicates(approved_users, good_users):
-    return filter_duplicates("personal_owner", approved_users, "Duplicate real name for account detected",
+def _filter_real_name_duplicates(approved_users, good_users):
+    return _filter_duplicates("personal_owner", approved_users, "Duplicate real name for account detected",
         good_users, lambda real_name: real_name.strip().lower())
 
-def filter_calnet_uid_duplicates(approved_users, good_users):
-    return filter_duplicates("calnet_uid", approved_users, "Duplicate CalNet UID detected",
+def _filter_calnet_uid_duplicates(approved_users, good_users):
+    return _filter_duplicates("calnet_uid", approved_users, "Duplicate CalNet UID detected",
         good_users)
 
-def filter_email_duplicates(approved_users, good_users):
-    return filter_duplicates("email", approved_users, "Duplicate email address detected",
+def _filter_email_duplicates(approved_users, good_users):
+    return _filter_duplicates("email", approved_users, "Duplicate email address detected",
         good_users)
 
-def filter_ocf_duplicates(approved_users, good_users, ocf_ldap_url, conflict_uid_lower_bound):
-    try:
-        l = ldap.initialize(ocf_ldap_url)
-        l.protocol_version = ldap.VERSION3
-    except ldap.LDAPError as e:
-        print e
-
+def _filter_ocf_duplicates(approved_users, good_users, options, conflict_uid_lower_bound):
     problem_users = set()
-    baseDN = "ou=people,dc=ocf,dc=berkeley,dc=edu"
-    searchScope = ldap.SCOPE_SUBTREE
-    retrieveAttrs = ["uidNumber", "cn"]
+    base_dn = "ou=people,dc=ocf,dc=berkeley,dc=edu"
+    retrieve_attrs = ["uidNumber", "cn"]
 
     for user in good_users:
         entry = approved_users[user]
@@ -111,62 +104,58 @@ def filter_ocf_duplicates(approved_users, good_users, ocf_ldap_url, conflict_uid
         else:
             raise Exception("Unable to discern name for requested acccount %s" % entry["account_name"])
 
-        searchFilter = "cn=%s" % (" %s " % name).replace(" ", "*")
-        try:
-            ldap_results = l.search_st(baseDN, searchScope, searchFilter, retrieveAttrs)
-            if len(ldap_results) != 0:
-                conflicting_entry = ldap_results[0][1]
-                conflicting_uid_number = conflicting_entry["uidNumber"][0]
-                if conflicting_uid_number >= conflict_uid_lower_bound:
-                    print "Possible existing account [req-fullname, req-username, coll-uid, coll-fullname]: %s, %s, %s, %s" % (name, user, conflicting_uid_number, conflicting_entry["cn"][0])
-                    if not prompt_returns_yes("Approve?"):
-                        problem_users.add(user)
-        except ldap.LDAPError as e:
-            print e
+        search_filter = "cn=*{}*".format(name).replace(" ", "*")
+        results = options.ocf_ldap.search_st(base_dn, ldap.SCOPE_SUBTREE,
+                                             search_filter, retrieve_attrs)
+        if results:
+            conflicting_entry = results[0][1]
+            conflicting_uid_number = conflicting_entry["uidNumber"][0]
+            if conflicting_uid_number >= conflict_uid_lower_bound:
+                print "Possible existing account [req-fullname, req-username, coll-uid, coll-fullname]: %s, %s, %s, %s" % (name, user, conflicting_uid_number, conflicting_entry["cn"][0])
+                if not prompt_returns_yes("Approve?"):
+                    problem_users.add(user)
 
     return problem_users
 
-def filter_registration_status(approved_users, good_users, calnet_ldap_url):
-    try:
-        l = ldap.initialize(calnet_ldap_url)
-        l.protocol_version = ldap.VERSION3
-    except ldap.LDAPError as e:
-        print e
-
+def _filter_registration_status(approved_users, good_users, options):
     problem_users = set()
-    baseDN = "dc=berkeley,dc=edu"
-    searchScope = ldap.SCOPE_SUBTREE
-    retrieveAttrs = ["berkeleyEduAffiliations", "displayName"]
+    base_dn = "dc=berkeley,dc=edu"
+    retrieve_attrs = ["berkeleyEduAffiliations", "displayName"]
 
     for user in good_users:
         entry = approved_users[user]
         if not entry["personal_owner"]:
-            print "Skipping CalNet registration check for group account %s" % entry["account_name"]
+            print "Skipping CalNet registration check for group account",
+            print entry["account_name"]
             continue
 
-        searchFilter = "uid=%s" % entry["calnet_uid"]
+        search_filter = "uid={}".format(["calnet_uid"])
 
-        try:
-            ldap_results = l.search_st(baseDN, searchScope, searchFilter, retrieveAttrs)
-            if len(ldap_results) == 0:
-                print "No CalNet entry found for %s (%s)" % (entry["calnet_uid"], entry["account_name"])
-                if not prompt_returns_yes("Approve %s?" % entry["account_name"]):
+        print "Looking up CalNet entry for {} ({})".format(entry["calnet_uid"],
+                                                           entry["account_name"])
+
+        results = options.calnet_ldap.search_st(base_dn, ldap.SCOPE_SUBTREE,
+                                                search_filter, retrieve_attrs)
+        if not results:
+            print "No CalNet entry found"
+
+            if not prompt_returns_yes("Approve %s?" % entry["account_name"]):
+                problem_users.add(user)
+        else:
+            result = results[0][1]
+            if "STUDENT-TYPE-REGISTERED" not in result["berkeleyEduAffiliations"]:
+                print "{} ({}) requested {}, but is not a registered student: {}".format(
+                    result["displayName"][0],
+                    entry["personal_owner"],
+                    entry["account_name"],
+                    result["berkeleyEduAffiliations"])
+
+                if not prompt_returns_yes("Approve?"):
                     problem_users.add(user)
-            else:
-                result = ldap_results[0][1]
-                if "STUDENT-TYPE-REGISTERED" not in result["berkeleyEduAffiliations"]:
-                    print "%s (%s) requested %s, but is not a registered student: %s" % \
-                        (result["displayName"][0],
-                        entry["personal_owner"],
-                        entry["account_name"],
-                        result["berkeleyEduAffiliations"])
-                    if not prompt_returns_yes("Approve?"):
-                        problem_users.add(user)
-        except ldap.LDAPError as e:
-            print e
+
     return problem_users
 
-def filter_usernames_manually(approved_users, good_users):
+def _filter_usernames_manually(approved_users, good_users):
     problem_users = set()
     for user in good_users:
         entry = approved_users[user]
@@ -200,7 +189,7 @@ def filter_accounts(users, options):
     good_users = set([users_entry["account_name"] for users_entry in users])
 
     print "Checking approved.log for duplicate requests"
-    run_filter(filter_log_duplicates, [users_entries, log_entries], good_users, problem_users)
+    _run_filter(_filter_log_duplicates, [users_entries, log_entries], good_users, problem_users)
     print
 
     print "Generating approved_users dictionary of account_name => approved.users entry"
@@ -208,29 +197,29 @@ def filter_accounts(users, options):
     print
 
     print "Checking for real name duplicates"
-    run_filter(filter_real_name_duplicates, [approved_users, good_users], good_users, problem_users)
+    _run_filter(_filter_real_name_duplicates, [approved_users, good_users], good_users, problem_users)
     print
 
     print "Checking for CalNet UID duplicates"
-    run_filter(filter_calnet_uid_duplicates, [approved_users, good_users], good_users, problem_users)
+    _run_filter(_filter_calnet_uid_duplicates, [approved_users, good_users], good_users, problem_users)
     print
 
     print "Checking for email address duplicates"
-    run_filter(filter_email_duplicates, [approved_users, good_users], good_users, problem_users)
+    _run_filter(_filter_email_duplicates, [approved_users, good_users], good_users, problem_users)
     print
 
     print "Checking for OCF existing accounts"
-    run_filter(filter_ocf_duplicates, [approved_users, good_users, options.ocf_ldap_url, \
+    _run_filter(_filter_ocf_duplicates, [approved_users, good_users, options, \
         options.conflict_uid_lower_bound], good_users, problem_users)
     print
 
     print "Checking CalNet for registration status"
-    run_filter(filter_registration_status, [approved_users, good_users, options.calnet_ldap_url],
+    _run_filter(_filter_registration_status, [approved_users, good_users, options],
         good_users, problem_users)
     print
 
     print "Checking requested usernames"
-    run_filter(filter_usernames_manually, [approved_users, good_users], good_users, problem_users)
+    _run_filter(_filter_usernames_manually, [approved_users, good_users], good_users, problem_users)
     print
 
     # done with filtering
