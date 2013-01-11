@@ -78,6 +78,11 @@ def _forward_add(user):
 
         os.chown(forward, getpwnam(user["account_name"]).pwd_uid, getgrnam("ocf").gr_gid)
 
+def _write_heimdal_dump_file(filename, users_list):
+    with open(filename, "w") as f:
+        for user in users_list:
+            f.write("%(account_name)s %(password)s\n" % user
+
 def _kerberos_add(user):
     password = \
       base64.b64encode(_decrypt_password(user["password"], options.rsa_priv_key))

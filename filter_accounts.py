@@ -50,17 +50,6 @@ def _parse_file(filename, parser_function):
             entries.append(parser_function(line))
     return entries
 
-def _write_file(filename, template_function, list_of_data):
-    with open(filename, "w") as f:
-        for data in list_of_data:
-            f.write(template_function(data))
-
-def _write_heimdal_dump_file(filename, users_list):
-    def _write_heimdal_dump_line(user):
-        return "%(account_name)s %(password)s\n" % user
-
-    return _write_file(filename, _write_heimdal_dump_line, users_list)
-
 def prompt_returns_yes(prompt):
     if prompt[-1] != " ":
         prompt = "%s " % prompt
@@ -299,8 +288,4 @@ def filter_accounts(users, options):
     print "Writing tmp/approved.users.good"
     with open("tmp/approved.users.good", "a") as f:
         write_users(f, good_users_entries)
-    print
-
-    print "Writing tmp/heimdal.dump"
-    _write_heimdal_dump_file("tmp/heimdal.dump", good_users_entries)
     print
