@@ -36,24 +36,26 @@ def _run_filter(filter_func, filter_args, good_users, problem_users):
     good_users.difference_update(filter_results)
     problem_users.update(filter_results)
 
-def _filter_log_duplicates(users_entries, log_entries):
+def _filter_log_duplicates(users, log_users):
     """
     returns the users that fail this filter
     meaning they will NOT be created
     """
     problem_users = set()
 
-    users_account_names = set([entry["account_name"] for entry in users_entries])
-    unique_log_names = set()
-    for log_entry in log_entries:
-        if log_entry["account_name"] in users_account_names:
-            if log_entry["account_name"] in unique_log_names:
-                print "Duplicate entry detected in approved.log file. Possible multiple approval."
-                if not prompt_returns_yes("Approve duplicate %s?" % log_entry["account_name"]):
-                    print "Adding to problem users"
-                    problem_users.add(log_entry["account_name"])
-            else:
-                unique_log_names.add(log_entry["account_name"])
+    account_map = dict((user["account_name"], user) for user in users)
+    user_names = set(user["account_name"] for user in users)
+    log_user_names = set(user["account_name"] for user in log_users)
+
+    duplicates = user_names.intersection(log_user_names)
+
+    for account_name in duplicates:
+        print "Duplicate entry detected in approved.log file. Possible multiple approval."
+
+        if not prompt_returns_yes("Approve duplicate {}?".format(account_name)):
+            print "Adding to problem users"
+            problem_users.add(account_map[account_name])
+
     return problem_users
 
 def _filter_duplicates(key, approved_users, error_str, good_users, unique_function = lambda x: x):
