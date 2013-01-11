@@ -18,7 +18,7 @@ def _get_max_uid_number(connection):
 
     return max(uid_numbers)
 
-def prompt_returns_yes(prompt):
+def _prompt_returns_yes(prompt):
     if prompt[-1] != " ":
         prompt += " "
 
@@ -36,11 +36,15 @@ def _run_filter(filter_func, filter_args, good_users, problem_users):
     good_users.difference_update(filter_results)
     problem_users.update(filter_results)
 
-def _filter_log_duplicates(users, log_users):
+def _filter_log_duplicates(users, options):
     """
     returns the users that fail this filter
     meaning they will NOT be created
     """
+
+    with open(options.log_file) as f:
+        log_users = get_log_entries(f)
+
     problem_users = set()
 
     account_map = dict((user["account_name"], user) for user in users)
@@ -52,7 +56,7 @@ def _filter_log_duplicates(users, log_users):
     for account_name in duplicates:
         print "Duplicate entry detected in approved.log file. Possible multiple approval."
 
-        if not prompt_returns_yes("Approve duplicate {}?".format(account_name)):
+        if not _prompt_returns_yes("Approve duplicate {}?".format(account_name)):
             print "Adding to problem users"
             problem_users.add(account_map[account_name])
 
@@ -71,10 +75,10 @@ def _filter_duplicates(key, approved_users, error_str, good_users, unique_functi
             print "%s: %s for %s" % \
                 (error_str, unique_of_entry, user)
             old_value = unique_values[unique_of_entry]
-            if not prompt_returns_yes("Approve %s?" % user):
+            if not _prompt_returns_yes("Approve %s?" % user):
                 print "Adding %s to problem users\n" % user
                 problem_users.add(user)
-            if not prompt_returns_yes("Approve the first of the duplicates, %s?" % old_value):
+            if not _prompt_returns_yes("Approve the first of the duplicates, %s?" % old_value):
                 print "Adding %s to problem users\n" % old_value
                 problem_users.add(old_value)
         else:
@@ -116,7 +120,7 @@ def _filter_ocf_duplicates(approved_users, good_users, options, conflict_uid_low
             conflicting_uid_number = conflicting_entry["uidNumber"][0]
             if conflicting_uid_number >= conflict_uid_lower_bound:
                 print "Possible existing account [req-fullname, req-username, coll-uid, coll-fullname]: %s, %s, %s, %s" % (name, user, conflicting_uid_number, conflicting_entry["cn"][0])
-                if not prompt_returns_yes("Approve?"):
+                if not _prompt_returns_yes("Approve?"):
                     problem_users.add(user)
 
     return problem_users
@@ -143,7 +147,7 @@ def _filter_registration_status(approved_users, good_users, options):
         if not results:
             print "No CalNet entry found"
 
-            if not prompt_returns_yes("Approve %s?" % entry["account_name"]):
+            if not _prompt_returns_yes("Approve %s?" % entry["account_name"]):
                 problem_users.add(user)
         else:
             result = results[0][1]
@@ -154,7 +158,7 @@ def _filter_registration_status(approved_users, good_users, options):
                     entry["account_name"],
                     result["berkeleyEduAffiliations"])
 
-                if not prompt_returns_yes("Approve?"):
+                if not _prompt_returns_yes("Approve?"):
                     problem_users.add(user)
 
     return problem_users
@@ -165,7 +169,7 @@ def _filter_usernames_manually(approved_users, good_users):
         entry = approved_users[user]
         account_name = entry["account_name"]
         real_name = entry["personal_owner"] or entry["group_owner"]
-        if not prompt_returns_yes("Approve %s for %s?" % (account_name, real_name)):
+        if not _prompt_returns_yes("Approve %s for %s?" % (account_name, real_name)):
             print "Adding %s to problem users" % user
             problem_users.add(user)
         print
@@ -181,19 +185,11 @@ def filter_accounts(users, options):
     needs_staff_approval = set()
     rejected = set()
 
-    print "Getting current max uid ..."
-    max_uid = _get_max_uid_number(options.ocf_ldap_url)
-    print "UIDs for new users will start at {}".format(max_uid + 1)
-
-    print "Parsing log entries from {} ...".format(options.log_file)
-    with open(options.log_file) as f:
-        log_entries = get_log_entries(f)
-    print
-
-    good_users = set([users_entry["account_name"] for users_entry in users])
+    good_users = users
 
     print "Checking approved.log for duplicate requests"
-    _run_filter(_filter_log_duplicates, [users_entries, log_entries], good_users, problem_users)
+    _run_filter(_filter_log_duplicates, [users_entries, options],
+                good_users, problem_users)
     print
 
     print "Generating approved_users dictionary of account_name => approved.users entry"
@@ -229,23 +225,20 @@ def filter_accounts(users, options):
     # done with filtering
     # now we write to file
 
-    problem_users_entries = [approved_users[user] for user in problem_users]
-    good_users_entries = []
-    # need to assign uid to new users
-    # as well as passwords
-    next_uid = max_uid + 1
-    for user in good_users:
-        entry = approved_users[user]
-        entry["uid_number"] = next_uid
-        good_users_entries.append(entry)
-        next_uid += 1
+    # Need to assign uid to new users
+    print "Getting current max uid ..."
+    uid_start = _get_max_uid_number(options.ocf_ldap) + 1
+    print "UIDs for new users will start at {}".format(uid_start)
+
+    for user, uid in zip(good_users, xrange(uid_start, uid_start + len(good_users)):
+        user["uid_number"] = uid
 
     print "Writing tmp/approved.users.bad"
     with open("tmp/approved.users.bad", "a") as f:
-        write_users(f, problem_users_entries)
+        write_users(f, problem_users)
     print
 
     print "Writing tmp/approved.users.good"
     with open("tmp/approved.users.good", "a") as f:
-        write_users(f, good_users_entries)
+        write_users(f, good_users)
     print
