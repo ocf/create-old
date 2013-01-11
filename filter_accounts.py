@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-from subprocess import Popen, PIPE
 import ldap
 import os
 import sys
