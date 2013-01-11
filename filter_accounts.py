@@ -10,20 +10,6 @@ import shlex
 
 from utils import get_log_entries
 
-def _create_parser():
-    parser = optparse.OptionParser()
-    parser.add_option("-u", "--usersfile", dest="users_file",
-        help="Input file of approved users", default="/opt/adm/approved.users")
-    parser.add_option("-l", "--logfile", dest="log_file",
-        help="Input file of approved log", default="/opt/adm/approved.log")
-    parser.add_option("-c", "--calnetldap", dest="calnet_ldap_url",
-        help="Url of CalNet's LDAP", default="ldap://169.229.218.90")
-    parser.add_option("-o", "--ocfldap", dest="ocf_ldap_url",
-        help="Url of OCF's LDAP", default="ldaps://ldap.ocf.berkeley.edu")
-    parser.add_option("-b", "--uidlowerbound", dest="conflict_uid_lower_bound",
-        help="Lower bound for OCF name collision detection", default=16000)
-    return parser
-
 def _get_max_uid_number(connection):
     entries = connection.search_st("ou=People,dc=OCF,dc=Berkeley,dc=EDU",
                                    ldap.SCOPE_SUBTREE, "(uid=*)", ["uidNumber"])
