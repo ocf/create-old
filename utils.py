@@ -18,7 +18,7 @@ from Crypto.PublicKey import RSA
 
 RSA_CIPHER = None
 
-def _decrypt_password(password, priv_key):
+def decrypt_password(password, priv_key):
     """
     Decrypt passwords using PKCS1_OAEP.
 
@@ -72,8 +72,6 @@ def get_users(stream, options):
         # for the account to be created.
         user = dict((key, value) for key, value in zip(fields, split))
 
-        user["password_decrypted"] = \
-          base64.b64encode(_decrypt_password(user["password"], options.rsa_priv_key))
         user["forward"] = bool(int(user["forward"]))
         user["is_group"] = bool(int(user["is_group"]))
 
