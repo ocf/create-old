@@ -177,32 +177,32 @@ def _process_user(username, real_name, email, forward, password, university_id,
 
 def _create_parser():
     parser = argparse.ArgumentParser(description = 'Process and create user accounts.')
-    parser.add_option("-u", "--usersfile", dest = "users_file",
-                      default = "/opt/adm/approved.users",
-                      help = "Input file of approved users")
-    parser.add_option("-m", "--midapprove", dest = "mid_approve",
-                      default = "/opt/adm/mid_approved.users",
-                      help = "Input file of users in mid stage of approval")
-    parser.add_option("-s", "--staffapprove", dest = "staff_approve",
-                      default = "/opt/adm/staff_approve.users",
-                      help = "Output file for users requiring manual staff approval")
-    parser.add_option("-l", "--logfile", dest = "log_file",
-                      default = "/opt/adm/approved.log",
-                      help = "Input file of approved log")
-    parser.add_option("-p", "--priv-key", dest = "rsa_priv_key",
-                      default = "/opt/adm/pass_private.pem",
-                      help = "Private key to decrypt user passwords")
-    parser.add_option("-c", "--calnetldap", dest = "calnet_ldap_url",
-                      default = "ldap://169.229.218.90",
-                      action = LDAPAction,
-                      help = "Url of CalNet's LDAP")
-    parser.add_option("-o", "--ocfldap", dest = "ocf_ldap_url",
-                      action = LDAPAction,
-                      default = "ldaps://ldap.ocf.berkeley.edu",
-                      help = "Url of OCF's LDAP")
-    parser.add_option("-b", "--uidlowerbound", dest = "conflict_uid_lower_bound",
-                      default = 16000,
-                      help = "Lower bound for OCF name collision detection")
+    parser.add_argument("-u", "--usersfile", dest = "users_file",
+                        default = "/opt/adm/approved.users",
+                        help = "Input file of approved users")
+    parser.add_argument("-m", "--midapprove", dest = "mid_approve",
+                        default = "/opt/adm/mid_approved.users",
+                        help = "Input file of users in mid stage of approval")
+    parser.add_argument("-s", "--staffapprove", dest = "staff_approve",
+                        default = "/opt/adm/staff_approve.users",
+                        help = "Output file for users requiring manual staff approval")
+    parser.add_argument("-l", "--logfile", dest = "log_file",
+                        default = "/opt/adm/approved.log",
+                        help = "Input file of approved log")
+    parser.add_argument("-p", "--priv-key", dest = "rsa_priv_key",
+                        default = "/opt/adm/pass_private.pem",
+                        help = "Private key to decrypt user passwords")
+    parser.add_argument("-c", "--calnetldap", dest = "calnet_ldap_url",
+                        default = "ldap://169.229.218.90",
+                        action = LDAPAction,
+                        help = "Url of CalNet's LDAP")
+    parser.add_argument("-o", "--ocfldap", dest = "ocf_ldap_url",
+                        action = LDAPAction,
+                        default = "ldaps://ldap.ocf.berkeley.edu",
+                        help = "Url of OCF's LDAP")
+    parser.add_argument("-b", "--uidlowerbound", dest = "conflict_uid_lower_bound",
+                        default = 16000,
+                        help = "Lower bound for OCF name collision detection")
     return parser
 
 def main(args):
