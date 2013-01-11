@@ -75,12 +75,27 @@ def get_users(stream, options):
         user["forward"] = bool(int(user["forward"]))
         user["is_group"] = bool(int(user["is_group"]))
 
-        if user["personal_owner"] is None and user["group_owner"] is None:
+        if user["personal_owner"] == "(null)" and user["group_owner"] == "(null)":
             raise Exception("Entry is missing personal_owner and group_owner")
-        if user["personal_owner"] is not None and user["group_owner"] is not None:
+        if user["personal_owner"] != "(null)" and user["group_owner"] != "(null)":
             raise Exception("Entry has both personal_owner and group_owner")
 
         yield user
+
+def write_users(stream, users):
+    for user in users:
+        items = \
+          [user["account_name"],
+           user["personal_owner"] if not user["is_group"] else "(null)",
+           user["group_owner"] if user["is_group"] else "(null)",
+           user["email"],
+           str(int(user["forward"])),
+           str(int(user["is_group"])),
+           user["password"],
+           user["key"],
+           user["calnet_uid"]]
+
+        stream.write(":".join(items))
 
 def get_log_entries(stream):
     for line in stream:
