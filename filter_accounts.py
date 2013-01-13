@@ -180,6 +180,54 @@ def _filter_usernames_manually(accepted, needs_approval, rejected, options):
         print
     return problem_users
 
+def _send_filter_mail(accepted, needs_approval, rejected,
+                      me = "OCF staff <help@ocf.berkeley.edu>",
+                      staff = "staff@ocf.berkeley.edu"):
+    if accepted or needs_approval or rejected:
+        body = "Account filtering run, results:\n"
+
+        if accepted:
+            body += "Automatically accepted:\n\n"
+
+            for user in accepted:
+                owner = user["group_owner" if user["is_group"] else "personal_owner"])
+                body += "    {} ({})\n".format(user["account_name"], owner)
+
+            body += "\n"
+            body += "Accounts will be created next time this script runs.\n\n"
+
+        if needs_approval:
+            body += "Needs staff approval:\n\n"
+
+            for user, comment in needs_approval:
+                owner = user["group_owner" if user["is_group"] else "personal_owner"])
+                body += "    {} ({}): {}\n".format(user["account_name"], owner, comment)
+
+            body += "\n"
+
+        if rejected:
+            body += "Rejected:\n\n"
+
+            for user, comment in rejected:
+                owner = user["group_owner" if user["is_group"] else "personal_owner"])
+                body += "    {} ({}): {}\n".format(user["account_name"], owner, comment)
+
+            body += "\n"
+
+        body += "Live lovely,\n--Account creation bot"
+
+        # Send out the mail!
+        s = smtplib.SMTP("localhost")
+
+        msg = MIMEText(body)
+        msg["Subject"] = "Account Filtering Results"
+        msg["From"] = me
+        msg["To"] = staff
+
+        s.sendmail(me, [staff], msg.as_string())
+
+        s.quit()
+
 def filter_accounts(users, options):
     """
     Filter accounts into auto-accepted, needs-staff-approval, and rejected.
