@@ -190,7 +190,7 @@ def _send_filter_mail(accepted, needs_approval, rejected,
             body += "Automatically accepted:\n\n"
 
             for user in accepted:
-                owner = user["group_owner" if user["is_group"] else "personal_owner"])
+                owner = user["group_owner" if user["is_group"] else "personal_owner"]
                 body += "    {} ({})\n".format(user["account_name"], owner)
 
             body += "\n"
@@ -200,7 +200,7 @@ def _send_filter_mail(accepted, needs_approval, rejected,
             body += "Needs staff approval:\n\n"
 
             for user, comment in needs_approval:
-                owner = user["group_owner" if user["is_group"] else "personal_owner"])
+                owner = user["group_owner" if user["is_group"] else "personal_owner"]
                 body += "    {} ({}): {}\n".format(user["account_name"], owner, comment)
 
             body += "\n"
@@ -209,7 +209,7 @@ def _send_filter_mail(accepted, needs_approval, rejected,
             body += "Rejected:\n\n"
 
             for user, comment in rejected:
-                owner = user["group_owner" if user["is_group"] else "personal_owner"])
+                owner = user["group_owner" if user["is_group"] else "personal_owner"]
                 body += "    {} ({}): {}\n".format(user["account_name"], owner, comment)
 
             body += "\n"
@@ -270,7 +270,7 @@ def filter_accounts(users, options):
     uid_start = _get_max_uid_number(options.ocf_ldap) + 1
     print "UIDs for new users will start at {}".format(uid_start)
 
-    for user, uid in zip(accepted, xrange(uid_start, uid_start + len(accepted)):
+    for user, uid in zip(accepted, xrange(uid_start, uid_start + len(accepted))):
         user["uid_number"] = uid
 
     with fancy_open(options.staff_approve, "a", lock = True) as f:
