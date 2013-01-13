@@ -93,14 +93,14 @@ def _kerberos_add(user, principal = "root/admin", principal_password = ""):
     kadmin.stdin.write("\n" * 5) # Leave all the principal parameters as their defaults
     kadmin.communicate()
 
-def _send_finalize_emails(users,
+def _send_finalize_emails(users, options,
                           me = "OCF staff <help@ocf.berkeley.edu>",
                           staff = "staff@ocf.berkeley.edu"):
     """
     Notify users and staff that accounts were created.
     """
 
-    if users:
+    if users and options.email:
         created_text = open(ACCOUNT_CREATED_LETTER).read()
 
         for user in users:
@@ -126,7 +126,6 @@ def _send_finalize_emails(users,
 
         s = Popen(["sendmail", "-t"], stdin = PIPE)
         s.communicate(msg.as_string())
-        print "sent mail"
 
 def finalize_accounts(users, options):
     users = list(users)
@@ -135,7 +134,7 @@ def finalize_accounts(users, options):
         for user in users:
             _finalize_account(user, options)
 
-        _send_finalize_emails(users)
+        _send_finalize_emails(users, options)
 
 def _finalize_account(user, options):
     """

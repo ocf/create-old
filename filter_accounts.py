@@ -218,10 +218,10 @@ def _filter_usernames(accepted, needs_approval, rejected, options):
 
     return accepted_new, needs_approval_new, rejected_new
 
-def _send_filter_mail(accepted, needs_approval, rejected,
+def _send_filter_mail(accepted, needs_approval, rejected, options,
                       me = "OCF staff <help@ocf.berkeley.edu>",
                       staff = "staff@ocf.berkeley.edu"):
-    if accepted or needs_approval or rejected:
+    if (accepted or needs_approval or rejected) and options.email:
         body = "Account filtering run, results:\n\n"
 
         if accepted:
@@ -261,8 +261,8 @@ def _send_filter_mail(accepted, needs_approval, rejected,
         msg["From"] = me
         msg["To"] = staff
 
-        #s = Popen(["sendmail", "-t"], stdin = PIPE)
-        #s.communicate(msg.as_string())
+        s = Popen(["sendmail", "-t"], stdin = PIPE)
+        s.communicate(msg.as_string())
 
 def filter_accounts(users, options):
     """
@@ -322,6 +322,6 @@ def filter_accounts(users, options):
         write_users(f, accepted)
 
     # Email out this information
-    _send_filter_mail(accepted, needs_approval, rejected)
+    _send_filter_mail(accepted, needs_approval, rejected, options)
 
     return needs_approval
