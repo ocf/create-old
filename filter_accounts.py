@@ -295,11 +295,11 @@ def filter_accounts(users, options):
     for user, uid in zip(accepted, xrange(uid_start, uid_start + len(accepted))):
         user["uid_number"] = uid
 
-    with fancy_open(options.staff_approve, "a", lock = True) as f:
-        write_users(f, needs_approval)
-
+    # Write the accepted users to a staging file, allowing them marinate
     with fancy_open(options.mid_approve, "a", lock = True) as f:
         write_users(f, accepted)
 
     # Email out this information
     _send_filter_mail(accepted, needs_approval, rejected)
+
+    return needs_approval

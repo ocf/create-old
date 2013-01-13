@@ -54,7 +54,7 @@ def _create_parser():
                         default = "/opt/adm/mid_approved.users",
                         help = "Input file of users in mid stage of approval")
     parser.add_argument("-i", "--interactive", dest = "interactive",
-                        action = "store_true"
+                        action = "store_true",
                         help = "Ask stdin when staff approval is required")
     parser.add_argument("-l", "--logfile", dest = "log_file",
                         default = "/opt/adm/approved.log",
@@ -84,15 +84,17 @@ def main(args):
 
     # Process the users in the mid stage of approval first
     with fancy_open(options.mid_approve, lock = True,
-                    pass_missing = True) as f:
+                    pass_missing = True, delete = True) as f:
         finalize_accounts(get_users(f, options), options)
 
     # Process all of the recently requested accounts
     with fancy_open(options.users_file, lock = True,
-                    pass_missing = True) as f:
-        filter_accounts(get_users(f, options), options)
+                    pass_missing = True, delete = True) as f:
+        needs_approval = filter_accounts(get_users(f, options), options)
 
-    # XXX: Move approved.users around? (_finish_account_creation...)
+    # Write the users needing staff approval back to the users file
+    with fancy_open(options.users_file, "a", lock = True) as f:
+        write_users(f, needs_approval)
 
 if __name__ == "__main__":
     main(sys.argv)
