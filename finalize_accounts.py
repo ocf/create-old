@@ -9,6 +9,7 @@ import ldap
 import os
 from pwd import getpwnam
 import smtplib
+from subprocess import PIPE, Popen
 
 ACCOUNT_CREATED_LETTER = \
   os.path.join(os.path.dirname(__file__), "txt", "acct.created.letter")
@@ -78,15 +79,20 @@ def _forward_add(user):
 
         os.chown(forward, getpwnam(user["account_name"]).pwd_uid, getgrnam("ocf").gr_gid)
 
-def _write_heimdal_dump_file(filename, users_list):
-    with open(filename, "w") as f:
-        for user in users_list:
-            f.write("%(account_name)s %(password)s\n") % user
-
-def _kerberos_add(user):
-    password = \
+def _kerberos_add(user, principal = "root/admin", principal_password = ""):
+    # Calling subprocess.Popen here because we don't have a decent
+    # kerberos python module for administration commands
+    user_passord = \
       base64.b64encode(_decrypt_password(user["password"], options.rsa_priv_key))
-    pass
+
+    kadmin = Popen(["kadmin", "-p", principal], stdin = PIPE)
+
+    # Call the add command
+    kadmin.stdin.write("add --password={} {}\n".format(user_password, user["account_name"]))
+    # XXX: Auth here with the password?
+    # kadmin.stdin.write("{}\n".format(principal_password))
+    kadmin.stdin.write("\n" * 5) # Leave all the principal parameters as their defaults
+    kadmin.communicate()
 
 def _sendemails(users):
     """
