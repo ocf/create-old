@@ -46,7 +46,7 @@ def _finish_account_creation(src):
     os.chmod(src, 0600)
 
 def _create_parser():
-    parser = argparse.ArgumentParser(description = 'Process and create user accounts.')
+    parser = argparse.ArgumentParser(description = "Process and create user accounts.")
     parser.add_argument("-u", "--usersfile", dest = "users_file",
                         default = "/opt/adm/approved.users",
                         help = "Input file of approved users")
