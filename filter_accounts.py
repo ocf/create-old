@@ -23,8 +23,10 @@ def _staff_approval(user, error_str, accepted, needs_approval, rejected, options
         needs_approval.append((user, error_str))
         return
 
-    prompt = error_str + (" " if error_str[-1] != " " else "")
-    prompt = "{error}, approve this account?".format(error = error_str, user = user)
+    prompt = "{}\n{} ({})\n"
+    prompt += "Approve this account? "
+    prompt = prompt.format(error_str, user["account_name"],
+                           user["group_owner" if user["is_group"] else "personal_owner"])
 
     ret = raw_input(prompt).strip().lower()
 
@@ -69,13 +71,20 @@ def _filter_duplicates(key, error_str, accepted, needs_approval, rejected, optio
 
     # Add the values for rejected requests
     for user, comment in needs_approval + rejected:
-        unique_values[unique_function(user[key])] = []
+        value = unique_function(user[key])
+
+        if value:
+            unique_values[value] = []
 
     # Screen all currently-okay requests
     for user in accepted:
         value = unique_function(user[key])
 
         if value in unique_values:
+            if not value:
+                unique_values[value].append(user)
+                continue
+
             # Duplicate found, add this user and the other duplicates to needs_approval_new
             for other in unique_values[value]:
                 _staff_approval(other, error_str,
@@ -93,9 +102,11 @@ def _filter_duplicates(key, error_str, accepted, needs_approval, rejected, optio
     return accepted_new, needs_approval_new, rejected_new
 
 def _filter_real_name_duplicates(accepted, needs_approval, rejected, options):
-    return _filter_duplicates("personal_owner", "Duplicate real name for account detected",
-                              accepted, needs_approval, rejected, options,
-                              lambda real_name: real_name.strip().lower())
+    def fix_name(real_name):
+        return real_name.strip().lower() if real_name != "(null)" else None
+
+    return _filter_duplicates("personal_owner", "Duplicate real name detected",
+                              accepted, needs_approval, rejected, options, fix_name)
 
 def _filter_calnet_uid_duplicates(accepted, needs_approval, rejected, options):
     return _filter_duplicates("calnet_uid", "Duplicate CalNet UID detected",
@@ -118,10 +129,7 @@ def _filter_ocf_duplicates(accepted, needs_approval, rejected, options):
     rejected_new = rejected
 
     for user in accepted:
-        if user["is_group"]:
-            name = entry["group_owner"]
-        else:
-            name = entry["personal_owner"]
+        name = user["group_owner" if user["is_group"] else "personal_owner"]
 
         search_filter = "cn=*{}*".format(name).replace(" ", "*")
         results = options.ocf_ldap.search_st(base_dn, ldap.SCOPE_SUBTREE,
