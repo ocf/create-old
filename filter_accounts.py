@@ -101,12 +101,20 @@ def _filter_duplicates(key, error_str, accepted, needs_approval, rejected, optio
 
     return accepted_new, needs_approval_new, rejected_new
 
-def _filter_real_name_duplicates(accepted, needs_approval, rejected, options):
-    def fix_name(real_name):
-        return real_name.strip().lower() if real_name != "(null)" else None
+def _fix_name(real_name):
+    return real_name.strip().lower() if real_name != "(null)" else None
 
+def _filter_account_name_duplicates(accepted, needs_approval, rejected, options):
+    return _filter_duplicates("account_name", "Duplicate account name detected",
+                              accepted, needs_approval, rejected, options, _fix_name)
+
+def _filter_real_name_duplicates(accepted, needs_approval, rejected, options):
     return _filter_duplicates("personal_owner", "Duplicate real name detected",
-                              accepted, needs_approval, rejected, options, fix_name)
+                              accepted, needs_approval, rejected, options, _fix_name)
+
+def _filter_group_duplicates(accepted, needs_approval, rejected, options):
+    return _filter_duplicates("group_owner", "Duplicate group name detected",
+                              accepted, needs_approval, rejected, options, _fix_name)
 
 def _filter_calnet_uid_duplicates(accepted, needs_approval, rejected, options):
     return _filter_duplicates("calnet_uid", "Duplicate CalNet UID detected",
@@ -271,9 +279,17 @@ def filter_accounts(users, options):
     accepted, needs_approval, rejected = \
       _filter_log_duplicates(accepted, needs_approval, rejected, options)
 
+    # Check for account name duplicates
+    accepted, needs_approval, rejected = \
+      _filter_account_name_duplicates(accepted, needs_approval, rejected, options)
+
     # Check for real name duplicates
     accepted, needs_approval, rejected = \
       _filter_real_name_duplicates(accepted, needs_approval, rejected, options)
+
+    # Check for group duplicates
+    accepted, needs_approval, rejected = \
+      _filter_group_duplicates(accepted, needs_approval, rejected, options)
 
     # Check for CalNet UID duplicates
     accepted, needs_approval, rejected = \
