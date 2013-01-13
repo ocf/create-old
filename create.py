@@ -16,7 +16,9 @@ import sys
 
 from filter_accounts import filter_accounts
 from finalize_accounts import finalize_accounts
-from utils import get_users, LDAPAction, fancy_open
+from utils import get_users, fancy_open, write_users
+
+import ldap
 
 def _associate_calnet(account_name):
     pass
@@ -62,12 +64,10 @@ def _create_parser():
     parser.add_argument("-p", "--priv-key", dest = "rsa_priv_key",
                         default = "/opt/adm/pass_private.pem",
                         help = "Private key to decrypt user passwords")
-    parser.add_argument("-c", "--calnetldap", dest = "calnet_ldap",
+    parser.add_argument("-c", "--calnetldap", dest = "calnet_ldap_url",
                         default = "ldap://169.229.218.90",
-                        action = LDAPAction,
                         help = "Url of CalNet's LDAP")
-    parser.add_argument("-o", "--ocfldap", dest = "ocf_ldap",
-                        action = LDAPAction,
+    parser.add_argument("-o", "--ocfldap", dest = "ocf_ldap_url",
                         default = "ldaps://ldap.ocf.berkeley.edu",
                         help = "Url of OCF's LDAP")
     parser.add_argument("-b", "--uidlowerbound", dest = "conflict_uid_lower_bound",
@@ -82,6 +82,14 @@ def main(args):
 
     options = _create_parser().parse_args()
 
+    options.calnet_ldap = ldap.initialize(options.calnet_ldap_url)
+    options.calnet_ldap.simple_bind_s("", "")
+    options.calnet_ldap.protocol_version = ldap.VERSION3
+
+    options.ocf_ldap = ldap.initialize(options.ocf_ldap_url)
+    options.ocf_ldap.simple_bind_s("", "")
+    options.ocf_ldap.protocol_version = ldap.VERSION3
+
     # Process the users in the mid stage of approval first
     with fancy_open(options.mid_approve, lock = True,
                     pass_missing = True, delete = True) as f:
@@ -94,7 +102,7 @@ def main(args):
 
     # Write the users needing staff approval back to the users file
     with fancy_open(options.users_file, "a", lock = True) as f:
-        write_users(f, needs_approval)
+        write_users(f, [user for user, comment in needs_approval])
 
 if __name__ == "__main__":
     main(sys.argv)

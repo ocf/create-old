@@ -132,12 +132,10 @@ def finalize_accounts(users, options):
     users = list(users)
 
     if users:
-        print users
-        assert False # Code needs testing, don't do this yet!
-
         for user in users:
             _finalize_account(user, options)
 
+        return
         _send_finalize_emails(users)
 
 def _finalize_account(user, options):
@@ -147,6 +145,7 @@ def _finalize_account(user, options):
 
     print "Creating new account, {}, for {}".format(user["account_name"],
                                                     user["personal_owner"])
+    return
 
     _ldap_add(user, options.ocf_ldap)
     _homedir_add(user)

@@ -7,20 +7,20 @@ import ldap
 import os
 import sys
 
-from utils import get_log_entries, fancy_open
+from utils import get_log_entries, fancy_open, write_users
 
 def _get_max_uid_number(connection):
     entries = connection.search_st("ou=People,dc=OCF,dc=Berkeley,dc=EDU",
                                    ldap.SCOPE_SUBTREE, "(uid=*)", ["uidNumber"])
     uid_numbers = (int(num)
-                   for num in entry[1]["uidNumber"]
-                   for entry in entries)
+                   for entry in entries
+                   for num in entry[1]["uidNumber"])
 
     return max(uid_numbers)
 
 def _staff_approval(user, error_str, accepted, needs_approval, rejected, options):
     if not options.interactive:
-        needs_approval += (user, error_str)
+        needs_approval.append((user, error_str))
         return
 
     prompt = error_str + (" " if error_str[-1] != " " else "")
@@ -48,9 +48,7 @@ def _filter_log_duplicates(accepted, needs_approval, rejected, options):
 
     with open(options.log_file) as f:
         log_users = get_log_entries(f)
-
-    user_names = set(user["account_name"] for user in users)
-    log_user_names = set(user["account_name"] for user in log_users)
+        log_user_names = set(user["account_name"] for user in log_users)
 
     for user in accepted:
         if user["account_name"] in log_user_names:
@@ -61,7 +59,7 @@ def _filter_log_duplicates(accepted, needs_approval, rejected, options):
 
     return accepted_new, needs_approval_new, rejected_new
 
-def _filter_duplicates(key, error_str, accepted, needs_approval, rejected,
+def _filter_duplicates(key, error_str, accepted, needs_approval, rejected, options,
                        unique_function = lambda x: x):
     accepted_new = []
     needs_approval_new = needs_approval
@@ -96,16 +94,16 @@ def _filter_duplicates(key, error_str, accepted, needs_approval, rejected,
 
 def _filter_real_name_duplicates(accepted, needs_approval, rejected, options):
     return _filter_duplicates("personal_owner", "Duplicate real name for account detected",
-                              accepted, needs_approval, rejected,
+                              accepted, needs_approval, rejected, options,
                               lambda real_name: real_name.strip().lower())
 
 def _filter_calnet_uid_duplicates(accepted, needs_approval, rejected, options):
     return _filter_duplicates("calnet_uid", "Duplicate CalNet UID detected",
-                              accepted, needs_approval, rejected)
+                              accepted, needs_approval, rejected, options)
 
 def _filter_email_duplicates(accepted, needs_approval, rejected, options):
     return _filter_duplicates("email", "Duplicate email address detected",
-                              accepted, needs_approval, rejected)
+                              accepted, needs_approval, rejected, options)
 
 def _filter_ocf_duplicates(accepted, needs_approval, rejected, options):
     """
@@ -152,9 +150,10 @@ def _filter_registration_status(accepted, needs_approval, rejected, options):
     needs_approval_new = needs_approval
     rejected_new = rejected
 
-    for user in good_users:
+    for user in accepted:
         # Skip CalNet registration check for group accounts
         if user["is_group"]:
+            accepted_new += user,
             continue
 
         search_filter = "uid={}".format(user["calnet_uid"])
@@ -204,6 +203,7 @@ def _filter_usernames(accepted, needs_approval, rejected, options):
 def _send_filter_mail(accepted, needs_approval, rejected,
                       me = "OCF staff <help@ocf.berkeley.edu>",
                       staff = "staff@ocf.berkeley.edu"):
+    return
     if accepted or needs_approval or rejected:
         body = "Account filtering run, results:\n"
 

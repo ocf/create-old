@@ -39,21 +39,6 @@ def decrypt_password(password, priv_key):
 
     return RSA_CIPHER.decrypt(password)
 
-class LDAPAction(argparse.Action):
-    """
-    An action to automatically open LDAP connections, given the URL passed as the
-    option's value.
-    """
-    def __call__(self, parser, namespace, values, option_string = None):
-        # Connect to LDAP
-        connection = ldap.initialize(values)
-
-        # if option_string in ["-c", "--calnetldap"]: use different credentials?
-        connection.simple_bind_s('','')
-        connect.protocol_version = ldap.VERSION3
-
-        setattr(namespace, self.dest, connection)
-
 def get_users(stream, options):
     fields = ("account_name", "personal_owner", "group_owner", "email",
               "forward", "is_group", "password", "key", "calnet_uid")
@@ -96,7 +81,7 @@ def write_users(stream, users):
            user["key"],
            user["calnet_uid"]]
 
-        stream.write(":".join(items))
+        stream.write(":".join(items) + "\n")
 
 def get_log_entries(stream):
     for line in stream:
