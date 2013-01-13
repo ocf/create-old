@@ -7,7 +7,7 @@ import ldap
 import os
 import sys
 
-from utils import get_log_entries
+from utils import get_log_entries, fancy_open
 
 def _get_max_uid_number(connection):
     entries = connection.search_st("ou=People,dc=OCF,dc=Berkeley,dc=EDU",
@@ -28,142 +28,147 @@ def _prompt_returns_yes(prompt):
 
     return ret.lower() == "y"
 
-def _run_filter(filter_func, filter_args, good_users, problem_users):
+def _filter_log_duplicates(accepted, needs_approval, rejected, options):
     """
-    Runs the filter and affects the contents of good_users and problem_users
-    """
-    filter_results = filter_func(*filter_args)
-    good_users.difference_update(filter_results)
-    problem_users.update(filter_results)
+    Filters users for account names already present in accounts.log.
 
-def _filter_log_duplicates(users, options):
+    Returns new accepted, needs_approval, and rejected lists.
     """
-    returns the users that fail this filter
-    meaning they will NOT be created
-    """
+
+    accepted_new = []
+    needs_approval_new = []
 
     with open(options.log_file) as f:
         log_users = get_log_entries(f)
 
-    problem_users = set()
-
-    account_map = dict((user["account_name"], user) for user in users)
     user_names = set(user["account_name"] for user in users)
     log_user_names = set(user["account_name"] for user in log_users)
 
-    duplicates = user_names.intersection(log_user_names)
-
-    for account_name in duplicates:
-        print "Duplicate entry detected in approved.log file. Possible multiple approval."
-
-        if not _prompt_returns_yes("Approve duplicate {}?".format(account_name)):
-            print "Adding to problem users"
-            problem_users.add(account_map[account_name])
-
-    return problem_users
-
-def _filter_duplicates(key, approved_users, error_str, good_users, unique_function = lambda x: x):
-    problem_users = set()
-    unique_values = dict()
-    for user in good_users:
-        entry = approved_users[user]
-        if not entry[key]:
-            print "Skipping %s" % user
-            continue
-        unique_of_entry = unique_function(entry[key])
-        if unique_values.has_key(unique_of_entry) and unique_of_entry !="(null)":
-            print "%s: %s for %s" % \
-                (error_str, unique_of_entry, user)
-            old_value = unique_values[unique_of_entry]
-            if not _prompt_returns_yes("Approve %s?" % user):
-                print "Adding %s to problem users\n" % user
-                problem_users.add(user)
-            if not _prompt_returns_yes("Approve the first of the duplicates, %s?" % old_value):
-                print "Adding %s to problem users\n" % old_value
-                problem_users.add(old_value)
+    for user in accepted:
+        if user["account_name"] in log_user_names:
+            needs_approval_new += (user, "Duplicate account name found in log file"),
         else:
-            unique_values[unique_of_entry] = user
-    return problem_users
+            accepted_new += user,
 
-def _filter_real_name_duplicates(approved_users, good_users):
-    return _filter_duplicates("personal_owner", approved_users, "Duplicate real name for account detected",
-        good_users, lambda real_name: real_name.strip().lower())
+    return accepted_new, needs_approval_new, rejected
 
-def _filter_calnet_uid_duplicates(approved_users, good_users):
-    return _filter_duplicates("calnet_uid", approved_users, "Duplicate CalNet UID detected",
-        good_users)
+def _filter_duplicates(key, error_str, accepted, needs_approval, rejected,
+                       unique_function = lambda x: x):
+    accepted_new = []
+    needs_approval_new = needs_approval
+    unique_values = dict()
 
-def _filter_email_duplicates(approved_users, good_users):
-    return _filter_duplicates("email", approved_users, "Duplicate email address detected",
-        good_users)
+    # Add the values for rejected requests
+    for user, comment in needs_approval + rejected:
+        unique_values[unique_function(user[key])] = []
 
-def _filter_ocf_duplicates(approved_users, good_users, options, conflict_uid_lower_bound):
-    problem_users = set()
+    # Screen all currently-okay requests
+    for user in accepted:
+        value = unique_function(user[key])
+
+        if value in unique_values:
+            # Duplicate found, add this user and the other duplicates to needs_approval_new
+            for other in unique_values[value]:
+                needs_approval_new += (other, error_str),
+
+            unique_values[value] = []
+            needs_approval_new += (user, error_str)
+        else:
+            unique_values[value] = [user]
+
+    for key, values in unique_values.items():
+        accepted_new += values
+
+    return accepted_new, needs_approval_new, rejected
+
+def _filter_real_name_duplicates(accepted, needs_approval, rejected, options):
+    return _filter_duplicates("personal_owner", "Duplicate real name for account detected",
+                              accepted, needs_approval, rejected,
+                              lambda real_name: real_name.strip().lower())
+
+def _filter_calnet_uid_duplicates(accepted, needs_approval, rejected, options):
+    return _filter_duplicates("calnet_uid", "Duplicate CalNet UID detected",
+                              accepted, needs_approval, rejected)
+
+def _filter_email_duplicates(accepted, needs_approval, rejected, options):
+    return _filter_duplicates("email", "Duplicate email address detected",
+                              accepted, needs_approval, rejected)
+
+def _filter_ocf_duplicates(accepted, needs_approval, rejected, options):
+    """
+    Search the OCF ldap database for matching cn entries.
+    """
+
     base_dn = "ou=people,dc=ocf,dc=berkeley,dc=edu"
     retrieve_attrs = ["uidNumber", "cn"]
 
-    for user in good_users:
-        entry = approved_users[user]
+    accepted_new = []
+    needs_approval_new = needs_approval
 
-        if entry["personal_owner"]:
-            name = entry["personal_owner"]
-        elif entry["group_owner"]:
+    for user in accepted:
+        if user["is_group"]:
             name = entry["group_owner"]
         else:
-            raise Exception("Unable to discern name for requested acccount %s" % entry["account_name"])
+            name = entry["personal_owner"]
 
         search_filter = "cn=*{}*".format(name).replace(" ", "*")
         results = options.ocf_ldap.search_st(base_dn, ldap.SCOPE_SUBTREE,
                                              search_filter, retrieve_attrs)
-        if results:
-            conflicting_entry = results[0][1]
-            conflicting_uid_number = conflicting_entry["uidNumber"][0]
-            if conflicting_uid_number >= conflict_uid_lower_bound:
-                print "Possible existing account [req-fullname, req-username, coll-uid, coll-fullname]: %s, %s, %s, %s" % (name, user, conflicting_uid_number, conflicting_entry["cn"][0])
-                if not _prompt_returns_yes("Approve?"):
-                    problem_users.add(user)
 
-    return problem_users
+        if (results and
+            results[0][1]["uidNumber"][0] >= options.conflict_uid_lower_bound):
+            needs_approval_new += (user, "Possible existing account"),
+        else:
+            accepted_new += user,
 
-def _filter_registration_status(approved_users, good_users, options):
-    problem_users = set()
+    return accepted_new, needs_approval_new, rejected
+
+def _filter_registration_status(accepted, needs_approval, rejected, options):
+    """
+    Check member eligibility by their CalNet registration status.
+
+    See rules: http://wiki.ocf.berkeley.edu/membership/eligibility/
+    """
+
     base_dn = "dc=berkeley,dc=edu"
     retrieve_attrs = ["berkeleyEduAffiliations", "displayName"]
 
+    accepted_new = []
+    needs_approval_new = needs_approval
+
     for user in good_users:
-        entry = approved_users[user]
-        if not entry["personal_owner"]:
-            print "Skipping CalNet registration check for group account",
-            print entry["account_name"]
+        # Skip CalNet registration check for group accounts
+        if user["is_group"]:
             continue
 
-        search_filter = "uid={}".format(["calnet_uid"])
-
-        print "Looking up CalNet entry for {} ({})".format(entry["calnet_uid"],
-                                                           entry["account_name"])
+        search_filter = "uid={}".format(user["calnet_uid"])
 
         results = options.calnet_ldap.search_st(base_dn, ldap.SCOPE_SUBTREE,
                                                 search_filter, retrieve_attrs)
         if not results:
-            print "No CalNet entry found"
+            needs_approval_new += (user, "No CalNet entry found")
+            continue
 
-            if not _prompt_returns_yes("Approve %s?" % entry["account_name"]):
-                problem_users.add(user)
+        affiliation = results[0][1]["berkeleyEduAffiliations"]
+
+        if ((("EMPLOYEE-TYPE-ACADEMIC" in affiliation or
+              "EMPLOYEE-TYPE-STAFF" in affiliation) and
+             "EMPLOYEE-STATUS-EXPIRED" not in affiliation)
+            or
+            ("STUDENT-TYPE-REGISTERED" in affiliation and
+             "STUDENT-STATUS-EXPIRED" not in affiliation)
+            or
+            ("AFFILIATE-TYPE" in affiliation and
+             "AFFILIATE-STATUS-EXPIRED" not in affiliation)):
+            accepted_new += user,
         else:
-            result = results[0][1]
-            if "STUDENT-TYPE-REGISTERED" not in result["berkeleyEduAffiliations"]:
-                print "{} ({}) requested {}, but is not a registered student: {}".format(
-                    result["displayName"][0],
-                    entry["personal_owner"],
-                    entry["account_name"],
-                    result["berkeleyEduAffiliations"])
+            message = "CalNet status not eligible for account ({})"
+            message.format(", ".join(affiliation))
+            needs_approval_new += (user, message),
 
-                if not _prompt_returns_yes("Approve?"):
-                    problem_users.add(user)
+    return accepted_new, needs_approval_new, rejected
 
-    return problem_users
-
-def _filter_usernames_manually(approved_users, good_users):
+def _filter_usernames_manually(accepted, needs_approval, rejected, options):
     problem_users = set()
     for user in good_users:
         entry = approved_users[user]
@@ -180,65 +185,51 @@ def filter_accounts(users, options):
     Filter accounts into auto-accepted, needs-staff-approval, and rejected.
     """
 
-    approved_users = {} # dict from account name => users_entry
-    accepted = set() # set of account_names (strings)
-    needs_staff_approval = set()
-    rejected = set()
+    accepted = list(users)
+    needs_approval = []
+    rejected = []
 
-    good_users = users
+    # Check for log duplicates
+    accepted, needs_approval, rejected = \
+      _filter_log_duplicates(accepted, needs_approval, rejected, options)
 
-    print "Checking approved.log for duplicate requests"
-    _run_filter(_filter_log_duplicates, [users_entries, options],
-                good_users, problem_users)
-    print
+    # Check for real name duplicates
+    accepted, needs_approval, rejected = \
+      _filter_real_name_duplicates(accepted, needs_approval, rejected, options)
 
-    print "Generating approved_users dictionary of account_name => approved.users entry"
-    approved_users = dict((user["account_name"], user) for user in users_entries)
-    print
+    # Check for CalNet UID duplicates
+    accepted, needs_approval, rejected = \
+      _filter_calnet_uid_duplicates(accepted, needs_approval, rejected, options)
 
-    print "Checking for real name duplicates"
-    _run_filter(_filter_real_name_duplicates, [approved_users, good_users], good_users, problem_users)
-    print
+    # Check for email address duplicates
+    accepted, needs_approval, rejected = \
+      _filter_email_duplicates(accepted, needs_approval, rejected, options)
 
-    print "Checking for CalNet UID duplicates"
-    _run_filter(_filter_calnet_uid_duplicates, [approved_users, good_users], good_users, problem_users)
-    print
+    # Check for OCF existing account duplicates
+    accepted, needs_approval, rejected = \
+      _filter_ocf_duplicates(accepted, needs_approval, rejected, options)
 
-    print "Checking for email address duplicates"
-    _run_filter(_filter_email_duplicates, [approved_users, good_users], good_users, problem_users)
-    print
+    # Check CalNet registration status
+    accepted, needs_approval, rejected = \
+      _filter_registration_status(accepted, needs_approval, rejected, options)
 
-    print "Checking for OCF existing accounts"
-    _run_filter(_filter_ocf_duplicates, [approved_users, good_users, options, \
-        options.conflict_uid_lower_bound], good_users, problem_users)
-    print
-
-    print "Checking CalNet for registration status"
-    _run_filter(_filter_registration_status, [approved_users, good_users, options],
-        good_users, problem_users)
-    print
-
-    print "Checking requested usernames"
-    _run_filter(_filter_usernames_manually, [approved_users, good_users], good_users, problem_users)
-    print
-
-    # done with filtering
-    # now we write to file
+    # Check requested usernames
+    # accepted, needs_approval, rejected = \
+    #   _filter_usernames_manually(accepted, needs_approval, rejected, options)
 
     # Need to assign uid to new users
     print "Getting current max uid ..."
     uid_start = _get_max_uid_number(options.ocf_ldap) + 1
     print "UIDs for new users will start at {}".format(uid_start)
 
-    for user, uid in zip(good_users, xrange(uid_start, uid_start + len(good_users)):
+    for user, uid in zip(accepted, xrange(uid_start, uid_start + len(accepted)):
         user["uid_number"] = uid
 
-    print "Writing tmp/approved.users.bad"
-    with open("tmp/approved.users.bad", "a") as f:
-        write_users(f, problem_users)
-    print
+    with fancy_open(options.staff_approve, "a", lock = True) as f:
+        write_users(f, needs_approval)
 
-    print "Writing tmp/approved.users.good"
-    with open("tmp/approved.users.good", "a") as f:
-        write_users(f, good_users)
-    print
+    with fancy_open(options.mid_approve, "a") as f:
+        write_users(f, accepted)
+
+    # Email out this information
+    _send_filter_mail(accepted, needs_approval, rejected)
