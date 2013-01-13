@@ -94,9 +94,9 @@ def _kerberos_add(user, principal = "root/admin", principal_password = ""):
     kadmin.stdin.write("\n" * 5) # Leave all the principal parameters as their defaults
     kadmin.communicate()
 
-def _send_emails(users,
-                me = "OCF staff <help@ocf.berkeley.edu>",
-                staff = "staff@ocf.berkeley.edu"):
+def _send_finalize_emails(users,
+                          me = "OCF staff <help@ocf.berkeley.edu>",
+                          staff = "staff@ocf.berkeley.edu"):
     """
     Notify users and staff that accounts were created.
     """
@@ -138,7 +138,7 @@ def finalize_accounts(users, options):
         for user in users:
             _finalize_account(user, options)
 
-        _send_emails(users)
+        _send_finalize_emails(users)
 
 def _finalize_account(user, options):
     """
