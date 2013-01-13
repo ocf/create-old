@@ -147,10 +147,10 @@ def fancy_open(path, mode = "r", lock = False, delete = False, pass_missing = Fa
         try:
             yield f
         finally:
-            f.close()
-
             if lock:
                 fcntl.flock(f, fcntl.LOCK_UN)
+
+            f.close()
 
             # Race condition here? Can we remove a file before we unlock it?
             if delete:
