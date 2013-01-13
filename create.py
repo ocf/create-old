@@ -53,9 +53,9 @@ def _create_parser():
     parser.add_argument("-m", "--midapprove", dest = "mid_approve",
                         default = "/opt/adm/mid_approved.users",
                         help = "Input file of users in mid stage of approval")
-    parser.add_argument("-s", "--staffapprove", dest = "staff_approve",
-                        default = "/opt/adm/staff_approve.users",
-                        help = "Output file for users requiring manual staff approval")
+    parser.add_argument("-i", "--interactive", dest = "interactive",
+                        action = "store_true"
+                        help = "Ask stdin when staff approval is required")
     parser.add_argument("-l", "--logfile", dest = "log_file",
                         default = "/opt/adm/approved.log",
                         help = "Input file of approved log")

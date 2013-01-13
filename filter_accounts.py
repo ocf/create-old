@@ -18,15 +18,22 @@ def _get_max_uid_number(connection):
 
     return max(uid_numbers)
 
-def _prompt_returns_yes(prompt):
-    if prompt[-1] != " ":
-        prompt += " "
+def _staff_approval(user, error_str, accepted, needs_approval, rejected, options):
+    if not options.interactive:
+        needs_approval += (user, error_str)
+        return
 
-    ret = raw_input(prompt).strip()
-    if len(ret):
-        ret = ret[0]
+    prompt = error_str + (" " if error_str[-1] != " " else "")
+    prompt = "{error}, approve this account?".format(error = error_str, user = user)
 
-    return ret.lower() == "y"
+    ret = raw_input(prompt).strip().lower()
+
+    if ret in ["y", "yes"]:
+        accepted.append(user)
+    elif ret in ["n", "no"]:
+        rejected.append((user, error_str))
+    else:
+        needs_approval.append((user, error_str))
 
 def _filter_log_duplicates(accepted, needs_approval, rejected, options):
     """
@@ -36,7 +43,8 @@ def _filter_log_duplicates(accepted, needs_approval, rejected, options):
     """
 
     accepted_new = []
-    needs_approval_new = []
+    needs_approval_new = needs_approval
+    rejected_new = rejected
 
     with open(options.log_file) as f:
         log_users = get_log_entries(f)
@@ -46,16 +54,19 @@ def _filter_log_duplicates(accepted, needs_approval, rejected, options):
 
     for user in accepted:
         if user["account_name"] in log_user_names:
-            needs_approval_new += (user, "Duplicate account name found in log file"),
+            _staff_approval(user, "Duplicate account name found in log file",
+                            accepted_new, needs_approval_new, rejected_new, options)
         else:
             accepted_new += user,
 
-    return accepted_new, needs_approval_new, rejected
+    return accepted_new, needs_approval_new, rejected_new
 
 def _filter_duplicates(key, error_str, accepted, needs_approval, rejected,
                        unique_function = lambda x: x):
     accepted_new = []
     needs_approval_new = needs_approval
+    rejected_new = rejected
+
     unique_values = dict()
 
     # Add the values for rejected requests
@@ -69,17 +80,19 @@ def _filter_duplicates(key, error_str, accepted, needs_approval, rejected,
         if value in unique_values:
             # Duplicate found, add this user and the other duplicates to needs_approval_new
             for other in unique_values[value]:
-                needs_approval_new += (other, error_str),
+                _staff_approval(other, error_str,
+                                accepted_new, needs_approval_new, rejected_new, options)
 
             unique_values[value] = []
-            needs_approval_new += (user, error_str)
+            _staff_approval(user, error_str,
+                            accepted_new, needs_approval_new, rejected_new, options)
         else:
             unique_values[value] = [user]
 
     for key, values in unique_values.items():
         accepted_new += values
 
-    return accepted_new, needs_approval_new, rejected
+    return accepted_new, needs_approval_new, rejected_new
 
 def _filter_real_name_duplicates(accepted, needs_approval, rejected, options):
     return _filter_duplicates("personal_owner", "Duplicate real name for account detected",
@@ -104,6 +117,7 @@ def _filter_ocf_duplicates(accepted, needs_approval, rejected, options):
 
     accepted_new = []
     needs_approval_new = needs_approval
+    rejected_new = rejected
 
     for user in accepted:
         if user["is_group"]:
@@ -117,11 +131,12 @@ def _filter_ocf_duplicates(accepted, needs_approval, rejected, options):
 
         if (results and
             results[0][1]["uidNumber"][0] >= options.conflict_uid_lower_bound):
-            needs_approval_new += (user, "Possible existing account"),
+            _staff_approval(user, "Possible existing account",
+                            accepted_new, needs_approval_new, rejected_new, options)
         else:
             accepted_new += user,
 
-    return accepted_new, needs_approval_new, rejected
+    return accepted_new, needs_approval_new, rejected_new
 
 def _filter_registration_status(accepted, needs_approval, rejected, options):
     """
@@ -135,6 +150,7 @@ def _filter_registration_status(accepted, needs_approval, rejected, options):
 
     accepted_new = []
     needs_approval_new = needs_approval
+    rejected_new = rejected
 
     for user in good_users:
         # Skip CalNet registration check for group accounts
@@ -164,21 +180,26 @@ def _filter_registration_status(accepted, needs_approval, rejected, options):
         else:
             message = "CalNet status not eligible for account ({})"
             message.format(", ".join(affiliation))
-            needs_approval_new += (user, message),
 
-    return accepted_new, needs_approval_new, rejected
+            _staff_approval(user, message,
+                            accepted_new, needs_approval_new, rejected_new, options)
 
-def _filter_usernames_manually(accepted, needs_approval, rejected, options):
-    problem_users = set()
-    for user in good_users:
-        entry = approved_users[user]
-        account_name = entry["account_name"]
-        real_name = entry["personal_owner"] or entry["group_owner"]
-        if not _prompt_returns_yes("Approve %s for %s?" % (account_name, real_name)):
-            print "Adding %s to problem users" % user
-            problem_users.add(user)
-        print
-    return problem_users
+    return accepted_new, needs_approval_new, rejected_new
+
+def _filter_usernames(accepted, needs_approval, rejected, options):
+    accepted_new = []
+    needs_approval_new = needs_approval
+    rejected_new = rejected
+
+    for user in accepted:
+        account_name = user["account_name"]
+        real_name = user["group_owner" if user["is_group"] else "personal_owner"]
+
+        message = "{} is not an allowed username for {}".format(account_name, real_name)
+        _staff_approval(user, message,
+                        accepted_new, needs_approval_new, rejected_new, options)
+
+    return accepted_new, needs_approval_new, rejected_new
 
 def _send_filter_mail(accepted, needs_approval, rejected,
                       me = "OCF staff <help@ocf.berkeley.edu>",
@@ -214,7 +235,8 @@ def _send_filter_mail(accepted, needs_approval, rejected,
 
             body += "\n"
 
-        body += "Live lovely,\n--Account creation bot"
+        body += "Live lovely,\n"
+        body += "--Account creation bot"
 
         # Send out the mail!
         s = smtplib.SMTP("localhost")
@@ -263,7 +285,7 @@ def filter_accounts(users, options):
 
     # Check requested usernames
     # accepted, needs_approval, rejected = \
-    #   _filter_usernames_manually(accepted, needs_approval, rejected, options)
+    #   _filter_usernames(accepted, needs_approval, rejected, options)
 
     # Need to assign uid to new users
     print "Getting current max uid ..."
@@ -276,7 +298,7 @@ def filter_accounts(users, options):
     with fancy_open(options.staff_approve, "a", lock = True) as f:
         write_users(f, needs_approval)
 
-    with fancy_open(options.mid_approve, "a") as f:
+    with fancy_open(options.mid_approve, "a", lock = True) as f:
         write_users(f, accepted)
 
     # Email out this information
