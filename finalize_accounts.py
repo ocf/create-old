@@ -8,7 +8,6 @@ from grp import getgrnam
 import ldap
 import os
 from pwd import getpwnam
-import smtplib
 from subprocess import PIPE, Popen
 
 ACCOUNT_CREATED_LETTER = \
@@ -103,30 +102,31 @@ def _send_finalize_emails(users,
 
     if users:
         created_text = open(ACCOUNT_CREATED_LETTER).read()
-        s = smtplib.SMTP("localhost")
 
         for user in users:
-            msg = MIMEText(CREATED_TXT.format(account_name = user["account_name"]))
+            msg = MIMEText(created_text.format(account_name = user["account_name"]))
             msg["Subject"] = "OCF account created"
             msg["From"] = me
             msg["To"] = user["email"]
 
-            s.sendmail(me, [user["email"]], msg.as_string())
+            s = Popen(["sendmail", "-t"], stdin = PIPE)
+            s.communicate(msg.as_string())
 
         # Notify staff of all the created accounts
         body = "Accounts created on {}:\n".format(datetime.now())
 
         for user in users:
-            body += "{}: {}\n".format(user["account_name"], user["personal_owner"])
+            owner = user["group_owner" if user["is_group"] else "personal_owner"]
+            body += "{}: {}\n".format(user["account_name"], owner)
 
         msg = MIMEText(body)
         msg["Subject"] = "Created OCF accounts"
         msg["From"] = me
         msg["To"] = staff
 
-        s.sendmail(me, [staff], msg.as_string())
-
-        s.quit()
+        s = Popen(["sendmail", "-t"], stdin = PIPE)
+        s.communicate(msg.as_string())
+        print "sent mail"
 
 def finalize_accounts(users, options):
     users = list(users)
@@ -135,7 +135,6 @@ def finalize_accounts(users, options):
         for user in users:
             _finalize_account(user, options)
 
-        return
         _send_finalize_emails(users)
 
 def _finalize_account(user, options):
@@ -143,8 +142,8 @@ def _finalize_account(user, options):
     Create a new account on the system.
     """
 
-    print "Creating new account, {}, for {}".format(user["account_name"],
-                                                    user["personal_owner"])
+    owner = user["group_owner" if user["is_group"] else "personal_owner"]
+    print "Creating new account, {}, for {}".format(user["account_name"], owner)
     return
 
     _ldap_add(user, options.ocf_ldap)

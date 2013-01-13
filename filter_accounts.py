@@ -3,8 +3,10 @@ Module to filter user accounts into good users, problematic users, and users tha
 require manual staff approval.
 """
 
+from email.mime.text import MIMEText
 import ldap
 import os
+from subprocess import PIPE, Popen
 import sys
 
 from utils import get_log_entries, fancy_open, write_users
@@ -219,19 +221,18 @@ def _filter_usernames(accepted, needs_approval, rejected, options):
 def _send_filter_mail(accepted, needs_approval, rejected,
                       me = "OCF staff <help@ocf.berkeley.edu>",
                       staff = "staff@ocf.berkeley.edu"):
-    return
     if accepted or needs_approval or rejected:
-        body = "Account filtering run, results:\n"
+        body = "Account filtering run, results:\n\n"
 
         if accepted:
-            body += "Automatically accepted:\n\n"
+            body += "Automatically accepted (Accounts will be created "
+            body += "next time this script runs):.\n\n"
 
             for user in accepted:
                 owner = user["group_owner" if user["is_group"] else "personal_owner"]
                 body += "    {} ({})\n".format(user["account_name"], owner)
 
             body += "\n"
-            body += "Accounts will be created next time this script runs.\n\n"
 
         if needs_approval:
             body += "Needs staff approval:\n\n"
@@ -252,19 +253,16 @@ def _send_filter_mail(accepted, needs_approval, rejected,
             body += "\n"
 
         body += "Live lovely,\n"
-        body += "--Account creation bot"
+        body += "--Account creation bot\n"
 
         # Send out the mail!
-        s = smtplib.SMTP("localhost")
-
         msg = MIMEText(body)
-        msg["Subject"] = "Account Filtering Results"
+        msg["Subject"] = "Account Filtering Results (Testing, please ignore)"
         msg["From"] = me
         msg["To"] = staff
 
-        s.sendmail(me, [staff], msg.as_string())
-
-        s.quit()
+        #s = Popen(["sendmail", "-t"], stdin = PIPE)
+        #s.communicate(msg.as_string())
 
 def filter_accounts(users, options):
     """
