@@ -93,6 +93,11 @@ def main(args):
     options.ocf_ldap = ldap.initialize(options.ocf_ldap_url)
     options.ocf_ldap.simple_bind_s("", "")
     options.ocf_ldap.protocol_version = ldap.VERSION3
+
+    # Autheticate our ldap session using gssapi
+    if os.system("kinit {}/admin".format(admin_user)) != 0:
+        raise RuntimeError("kinit failed")
+
     options.ocf_ldap.sasl_interactive_bind_s("", ldap.sasl.gssapi(""))
 
     # Process the users in the mid stage of approval first
