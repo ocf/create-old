@@ -13,6 +13,7 @@ import argparse
 from getpass import getpass
 import os
 import shutil
+from subprocess import Popen, PIPE, check_call
 import sys
 
 from filter_accounts import filter_accounts
@@ -101,6 +102,7 @@ def main(args):
     # Autheticate our ldap session using gssapi
     options.admin_password = getpass("{}/admin@OCF.BERKELEY.EDU's Password: ")
 
+    # XXX: Use python-kerberos for this?
     kinit = Popen(["kinit", "{}/admin".format(options.admin_user)], stdin = PIPE)
     kinit.stdin.write("{}\n".format(options.admin_password))
     kinit.communicate()
@@ -114,6 +116,8 @@ def main(args):
     with fancy_open(options.mid_approve, lock = True,
                     pass_missing = True, delete = True) as f:
         finalize_accounts(get_users(f, options), options)
+
+    check_call(["kdestroy"])
 
     # Process all of the recently requested accounts
     with fancy_open(options.users_file, lock = True,
