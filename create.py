@@ -10,6 +10,7 @@ User creation tool.
 # pycrypto
 
 import argparse
+from getpass import getpass
 import os
 import shutil
 import sys
@@ -98,8 +99,14 @@ def main(args):
     options.ocf_ldap.protocol_version = ldap.VERSION3
 
     # Autheticate our ldap session using gssapi
-    if os.system("kinit {}/admin".format(options.admin_user)) != 0:
-        raise RuntimeError("kinit failed")
+    options.admin_password = getpass("{}/admin@OCF.BERKELEY.EDU's Password: ")
+
+    kinit = Popen(["kinit", "{}/admin".format(options.admin_user)], stdin = PIPE)
+    kinit.stdin.write("{}\n".format(options.admin_password))
+    kinit.communicate()
+
+    if kinit.returncode != 0:
+        raise RuntimeError("kinit failed with exit code: " + kinit.returncode)
 
     options.ocf_ldap.sasl_interactive_bind_s("", ldap.sasl.gssapi(""))
 
