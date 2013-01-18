@@ -108,7 +108,8 @@ def _kerberos_add(users, options)
         raise RuntimeError("kdamin returned non-zero exit code: " + kadmin.returncode)
 
 def _send_finalize_emails(users, options,
-                          me = "OCF staff <help@ocf.berkeley.edu>",
+                          me = "OCF staff <staff@ocf.berkeley.edu>",
+                          reply_to = "help@ocf.berkeley.edu"
                           staff = "staff@ocf.berkeley.edu"):
     """
     Notify users and staff that accounts were created.
@@ -121,6 +122,7 @@ def _send_finalize_emails(users, options,
             msg = MIMEText(created_text.format(account_name = user["account_name"]))
             msg["Subject"] = "OCF account created"
             msg["From"] = me
+            msg["Reply-To"] = reply_to
             msg["To"] = user["email"]
 
             s = Popen(["sendmail", "-t"], stdin = PIPE)
