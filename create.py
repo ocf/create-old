@@ -5,7 +5,7 @@ User creation tool.
 """
 
 # Dependencies:
-# python2.7
+# python2.7 (Or python2.6 + python-argparse)
 # python-ldap
 # pycrypto
 
