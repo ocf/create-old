@@ -82,7 +82,7 @@ def _kerberos_add(user, principal = "root/admin", principal_password = ""):
     # Calling subprocess.Popen here because we don't have a decent
     # kerberos python module for administration commands
     user_passord = \
-      base64.b64decode(_decrypt_password(user["password"], options.rsa_priv_key))
+      _decrypt_password(base64.b64decode(user["password"]), options.rsa_priv_key)
 
     kadmin = Popen(["kadmin", "-p", principal], stdin = PIPE)
 
