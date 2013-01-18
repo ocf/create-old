@@ -92,6 +92,9 @@ def _kerberos_add(user, principal = "root/admin", principal_password = ""):
     # kadmin.stdin.write("{}\n".format(principal_password))
     kadmin.communicate()
 
+    if kadmin.returncode != 0:
+        raise RuntimeError("kdamin returned non-zero exit code: " + kadmin.returncode)
+
 def _send_finalize_emails(users, options,
                           me = "OCF staff <help@ocf.berkeley.edu>",
                           staff = "staff@ocf.berkeley.edu"):
