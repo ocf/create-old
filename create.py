@@ -56,6 +56,9 @@ def _create_parser():
     parser.add_argument("-m", "--midapprove", dest = "mid_approve",
                         default = "/opt/adm/mid_approved.users",
                         help = "Input file of users in mid stage of approval")
+    parser.add_argument("-a", "--admin-user", dest = "admin_user",
+                        default = os.environ["SUDO_USER"],
+                        help = "User to autheticate through kerberos with")
     parser.add_argument("-i", "--interactive", dest = "interactive",
                         action = "store_true",
                         help = "Ask stdin when staff approval is required")
@@ -95,7 +98,7 @@ def main(args):
     options.ocf_ldap.protocol_version = ldap.VERSION3
 
     # Autheticate our ldap session using gssapi
-    if os.system("kinit {}/admin".format(admin_user)) != 0:
+    if os.system("kinit {}/admin".format(options.admin_user)) != 0:
         raise RuntimeError("kinit failed")
 
     options.ocf_ldap.sasl_interactive_bind_s("", ldap.sasl.gssapi(""))
