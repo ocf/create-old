@@ -87,10 +87,9 @@ def _kerberos_add(user, principal = "root/admin", principal_password = ""):
     kadmin = Popen(["kadmin", "-p", principal], stdin = PIPE)
 
     # Call the add command
-    kadmin.stdin.write("add --password={} {}\n".format(user_password, user["account_name"]))
+    kadmin.stdin.write("add --password={} --use-defaults {}\n".format(user_password, user["account_name"]))
     # XXX: Auth here with the password?
     # kadmin.stdin.write("{}\n".format(principal_password))
-    kadmin.stdin.write("\n" * 5) # Leave all the principal parameters as their defaults
     kadmin.communicate()
 
 def _send_finalize_emails(users, options,
