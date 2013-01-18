@@ -127,14 +127,30 @@ def _send_finalize_emails(users, options,
         s = Popen(["sendmail", "-t"], stdin = PIPE)
         s.communicate(msg.as_string())
 
+def _get_max_uid_number(connection):
+    entries = connection.search_st("ou=People,dc=OCF,dc=Berkeley,dc=EDU",
+                                   ldap.SCOPE_SUBTREE, "(uid=*)", ["uidNumber"])
+    uid_numbers = (int(num)
+                   for entry in entries
+                   for num in entry[1]["uidNumber"])
+
+    return max(uid_numbers)
+
 def finalize_accounts(users, options):
     users = list(users)
 
-    if users:
-        for user in users:
-            _finalize_account(user, options)
+    # Need to assign uid to new users
+    print "Getting current max uid ..."
+    uid_start = _get_max_uid_number(options.ocf_ldap) + 1
+    print "UIDs for new users will start at {}".format(uid_start)
 
-        _send_finalize_emails(users, options)
+    for uid, user in enumerate(users, start = uid_start):
+        user["uid_number"] = uid
+
+    for user in users:
+        _finalize_account(user, options)
+
+    _send_finalize_emails(users, options)
 
 def _finalize_account(user, options):
     """

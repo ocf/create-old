@@ -309,14 +309,6 @@ def filter_accounts(users, options):
     # accepted, needs_approval, rejected = \
     #   _filter_usernames(accepted, needs_approval, rejected, options)
 
-    # Need to assign uid to new users
-    print "Getting current max uid ..."
-    uid_start = _get_max_uid_number(options.ocf_ldap) + 1
-    print "UIDs for new users will start at {}".format(uid_start)
-
-    for user, uid in zip(accepted, xrange(uid_start, uid_start + len(accepted))):
-        user["uid_number"] = uid
-
     # Write the accepted users to a staging file, allowing them marinate
     with fancy_open(options.mid_approve, "a", lock = True) as f:
         write_users(f, accepted)
