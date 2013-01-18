@@ -100,7 +100,8 @@ def main(args):
     options.ocf_ldap.protocol_version = ldap.VERSION3
 
     # Autheticate our ldap session using gssapi
-    options.admin_password = getpass("{}/admin@OCF.BERKELEY.EDU's Password: ")
+    options.admin_password = \
+      getpass("{}/admin@OCF.BERKELEY.EDU's Password: ".format(options.admin_user))
 
     # XXX: Use python-kerberos for this?
     kinit = Popen(["kinit", "{}/admin".format(options.admin_user)], stdin = PIPE)
