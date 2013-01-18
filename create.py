@@ -19,6 +19,7 @@ from finalize_accounts import finalize_accounts
 from utils import get_users, fancy_open, write_users
 
 import ldap
+import ldap.sasl
 
 def _associate_calnet(account_name):
     pass
@@ -68,7 +69,7 @@ def _create_parser():
                         default = "/opt/adm/pass_private.pem",
                         help = "Private key to decrypt user passwords")
     parser.add_argument("-c", "--calnetldap", dest = "calnet_ldap_url",
-                        default = "ldap://169.229.218.90",
+                        default = "ldap://ldap.berkeley.edu",
                         help = "Url of CalNet's LDAP")
     parser.add_argument("-o", "--ocfldap", dest = "ocf_ldap_url",
                         default = "ldaps://ldap.ocf.berkeley.edu",
@@ -92,6 +93,7 @@ def main(args):
     options.ocf_ldap = ldap.initialize(options.ocf_ldap_url)
     options.ocf_ldap.simple_bind_s("", "")
     options.ocf_ldap.protocol_version = ldap.VERSION3
+    options.ocf_ldap.sasl_interactive_bind_s("", ldap.sasl.gssapi(""))
 
     # Process the users in the mid stage of approval first
     with fancy_open(options.mid_approve, lock = True,
