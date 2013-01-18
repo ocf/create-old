@@ -95,12 +95,12 @@ def _kerberos_add(users, options)
           _decrypt_password(base64.b64decode(user["password"]), options.rsa_priv_key)
 
         # Call the add command
+        kadmin.stdin.write("add --password={} --use-defaults {}\n".format(user_password, user["account_name"]))
+
         if first:
-            # XXX: Auth here with the password?
+            # Autheticate the first time
             kadmin.stdin.write("{}\n".format(options.admin_password))
             first = False
-
-        kadmin.stdin.write("add --password={} --use-defaults {}\n".format(user_password, user["account_name"]))
 
     kadmin.communicate()
 
