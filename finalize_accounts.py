@@ -8,7 +8,7 @@ from grp import getgrnam
 import ldap
 import os
 from pwd import getpwnam
-from subprocess import PIPE, Popen
+from subprocess import PIPE, Popen, check_call
 
 ACCOUNT_CREATED_LETTER = \
   os.path.join(os.path.dirname(__file__), "txt", "acct.created.letter")
@@ -35,19 +35,24 @@ def _ldap_add(user, connection, shell = "/bin/bash"):
         "objectClass": "posixAccount",
         "cn": user["personal_owner"],
         "uid": user["account_name"],
-        "uidNumber": user["calnet_uid"],
+        "uidNumber": user["uid_number"],
         "gidNumber": getgrnam("ocf").gr_gid,
         "homeDirectory": _homedir(user["account_name"]),
         "loginShell": shell,
-        "gecos": user["personal_owner"]
+        "gecos": user["personal_owner"],
     }
 
-    if "calnet_uid" in user and user["calnet_uid"].isdigit():
-        attrs["calNetuid"] = user["calnet_uid"] # str() this?
+    if "calnet_uid" in user:
+        attrs["calNetuid"] = user["calnet_uid"]
+    elif not user["is_group"]:
+        raise KeyError("User does not have calnet uid set")
 
     # Enter it into LDAP
     ldif = ldap.modlist.addModlist(attrs)
     connection.add_s(dn, ldif)
+
+    # Invalidate the local cache so we can chown their files later
+    check_call(["nscd", "-i", "passwd"])
 
 def _homedir_add(user):
     home = _homedir(user["account_name"])
@@ -78,13 +83,13 @@ def _forward_add(user):
 
         os.chown(forward, getpwnam(user["account_name"]).pwd_uid, getgrnam("ocf").gr_gid)
 
-def _kerberos_add(user, principal = "root/admin", principal_password = ""):
+def _kerberos_add(user, options)
     # Calling subprocess.Popen here because we don't have a decent
     # kerberos python module for administration commands
     user_passord = \
       _decrypt_password(base64.b64decode(user["password"]), options.rsa_priv_key)
 
-    kadmin = Popen(["kadmin", "-p", principal], stdin = PIPE)
+    kadmin = Popen(["kadmin", "-p", "{}/admin".format(options.admin_user)], stdin = PIPE)
 
     # Call the add command
     kadmin.stdin.write("add --password={} --use-defaults {}\n".format(user_password, user["account_name"]))
@@ -166,4 +171,4 @@ def _finalize_account(user, options):
     _ldap_add(user, options.ocf_ldap)
     _homedir_add(user)
     _forward_add(user)
-    _kerberos_add(user, options.kerberos)
+    _kerberos_add(user, options)
