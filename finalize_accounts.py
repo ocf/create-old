@@ -27,29 +27,30 @@ def _httpdir(account_name):
     return os.path.sep + \
       os.path.join("services", "http", "users", account_name[0], account_name)
 
-def _ldap_add(user, connection, shell = "/bin/bash"):
-    dn = "uid={},ou=People,dc=OCF,dc=Berkeley,dc=EDU".format(user["account_name"])
-    attrs = {
-        "objectClass": "ocfAccount",
-        "objectClass": "account",
-        "objectClass": "posixAccount",
-        "cn": user["personal_owner"],
-        "uid": user["account_name"],
-        "uidNumber": user["uid_number"],
-        "gidNumber": getgrnam("ocf").gr_gid,
-        "homeDirectory": _homedir(user["account_name"]),
-        "loginShell": shell,
-        "gecos": user["personal_owner"],
-    }
+def _ldap_add(users, connection, shell = "/bin/bash"):
+    for user in users:
+        dn = "uid={},ou=People,dc=OCF,dc=Berkeley,dc=EDU".format(user["account_name"])
+        attrs = {
+            "objectClass": "ocfAccount",
+            "objectClass": "account",
+            "objectClass": "posixAccount",
+            "cn": user["personal_owner"],
+            "uid": user["account_name"],
+            "uidNumber": user["uid_number"],
+            "gidNumber": getgrnam("ocf").gr_gid,
+            "homeDirectory": _homedir(user["account_name"]),
+            "loginShell": shell,
+            "gecos": user["personal_owner"],
+        }
 
-    if "calnet_uid" in user:
-        attrs["calNetuid"] = user["calnet_uid"]
-    elif not user["is_group"]:
-        raise KeyError("User does not have calnet uid set")
+        if "calnet_uid" in user:
+            attrs["calNetuid"] = user["calnet_uid"]
+        elif not user["is_group"]:
+            raise KeyError("User does not have calnet uid set")
 
-    # Enter it into LDAP
-    ldif = ldap.modlist.addModlist(attrs)
-    connection.add_s(dn, ldif)
+        # Enter it into LDAP
+        ldif = ldap.modlist.addModlist(attrs)
+        connection.add_s(dn, ldif)
 
     # Invalidate the local cache so we can chown their files later
     check_call(["nscd", "-i", "passwd"])
@@ -83,18 +84,24 @@ def _forward_add(user):
 
         os.chown(forward, getpwnam(user["account_name"]).pwd_uid, getgrnam("ocf").gr_gid)
 
-def _kerberos_add(user, options)
-    # Calling subprocess.Popen here because we don't have a decent
-    # kerberos python module for administration commands
-    user_passord = \
-      _decrypt_password(base64.b64decode(user["password"]), options.rsa_priv_key)
-
+def _kerberos_add(users, options)
     kadmin = Popen(["kadmin", "-p", "{}/admin".format(options.admin_user)], stdin = PIPE)
+    first = True
 
-    # Call the add command
-    kadmin.stdin.write("add --password={} --use-defaults {}\n".format(user_password, user["account_name"]))
-    # XXX: Auth here with the password?
-    # kadmin.stdin.write("{}\n".format(principal_password))
+    for user in users:
+        # Calling subprocess.Popen here because we don't have a decent
+        # kerberos python module for administration commands
+        user_passord = \
+          _decrypt_password(base64.b64decode(user["password"]), options.rsa_priv_key)
+
+        # Call the add command
+        if first:
+            # XXX: Auth here with the password?
+            kadmin.stdin.write("{}\n".format(options.admin_password))
+            first = False
+
+        kadmin.stdin.write("add --password={} --use-defaults {}\n".format(user_password, user["account_name"]))
+
     kadmin.communicate()
 
     if kadmin.returncode != 0:
@@ -168,7 +175,7 @@ def _finalize_account(user, options):
     print "Creating new account, {}, for {}".format(user["account_name"], owner)
     return
 
-    _ldap_add(user, options.ocf_ldap)
+    _ldap_add([user], options.ocf_ldap)
     _homedir_add(user)
     _forward_add(user)
-    _kerberos_add(user, options)
+    _kerberos_add([user], options)
