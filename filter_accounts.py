@@ -11,15 +11,6 @@ import sys
 
 from utils import get_log_entries, fancy_open, write_users
 
-def _get_max_uid_number(connection):
-    entries = connection.search_st("ou=People,dc=OCF,dc=Berkeley,dc=EDU",
-                                   ldap.SCOPE_SUBTREE, "(uid=*)", ["uidNumber"])
-    uid_numbers = (int(num)
-                   for entry in entries
-                   for num in entry[1]["uidNumber"])
-
-    return max(uid_numbers)
-
 def _staff_approval(user, error_str, accepted, needs_approval, rejected, options):
     if not options.interactive:
         needs_approval.append((user, error_str))
@@ -184,6 +175,19 @@ def _filter_registration_status(accepted, needs_approval, rejected, options):
 
         affiliation = results[0][1]["berkeleyEduAffiliations"]
 
+        allowed_affiliates = set(["AFFILIATE-TYPE-CONSULTANT",
+                                  "AFFILIATE-TYPE-LBLOP STAFF",
+                                  "AFFILIATE-TYPE-VISITING SCHOLAR",
+                                  "AFFILIATE-TYPE-VOLUNTEER",
+                                  "AFFILIATE-TYPE-HHMI RESEARCHER",
+                                  "AFFILIATE-TYPE-VISITING STU RESEARCHER",
+                                  "AFFILIATE-TYPE-LBL/DOE POSTDOC",
+                                  "AFFILIATE-TYPE-TEMP AGENCY",
+                                  "AFFILIATE-TYPE-COMMITTEE MEMBER",
+                                  "AFFILIATE-TYPE-STAFF OF UC/OP/AFFILIATED ORGS",
+                                  "AFFILIATE-TYPE-CONTRACTOR"
+                                  "AFFILIATE-TYPE-CONCURR ENROLL"])
+
         if ((("EMPLOYEE-TYPE-ACADEMIC" in affiliation or
               "EMPLOYEE-TYPE-STAFF" in affiliation) and
              "EMPLOYEE-STATUS-EXPIRED" not in affiliation)
@@ -191,7 +195,7 @@ def _filter_registration_status(accepted, needs_approval, rejected, options):
             ("STUDENT-TYPE-REGISTERED" in affiliation and
              "STUDENT-STATUS-EXPIRED" not in affiliation)
             or
-            ("AFFILIATE-TYPE" in affiliation and
+            (set(affiliation).intersects(allowed_affiliates) and
              "AFFILIATE-STATUS-EXPIRED" not in affiliation)):
             accepted_new += user,
         else:
