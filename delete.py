@@ -14,7 +14,7 @@ from getpass import getpass
 import os
 import pexpect
 import shutil
-from subprocess import PIPE, Popen, check_call
+from subprocess import check_call
 import sys
 
 from ocf import home_dir, http_dir, OCF_DN
@@ -24,7 +24,6 @@ import ldap.sasl
 
 def _kerberos_rm(users, options):
     kadmin = pexpect.spawn("kadmin", ["-p", "{0}/admin".format(options.admin_user)])
-
     kadmin.expect("kadmin> ")
 
     for user in users:
