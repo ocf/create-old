@@ -1,5 +1,7 @@
+#!/usr/bin/env python
+
 """
-Let there be light.
+"Let there be light." -- Genesis 1:3
 
 User creation tool.
 """
@@ -27,6 +29,7 @@ def _associate_calnet(account_name):
     pass
 
 def _check_account_name(account_name):
+    # do getent passwd account_name
     pass
 
 def _email_problems():
@@ -82,6 +85,7 @@ def _create_parser():
     parser.add_argument("-b", "--uidlowerbound", dest = "conflict_uid_lower_bound",
                         default = 16000,
                         help = "Lower bound for OCF name collision detection")
+
     return parser
 
 def main(args):
@@ -89,7 +93,7 @@ def main(args):
     Process a file contain a list of user accounts to create.
     """
 
-    options = _create_parser().parse_args()
+    options = _create_parser().parse_args(args = args)
 
     options.calnet_ldap = ldap.initialize(options.calnet_ldap_url)
     options.calnet_ldap.simple_bind_s("", "")
@@ -103,22 +107,23 @@ def main(args):
     options.admin_password = \
       getpass("{}/admin@OCF.BERKELEY.EDU's Password: ".format(options.admin_user))
 
-    # XXX: Use python-kerberos for this?
-    kinit = Popen(["kinit", "{}/admin".format(options.admin_user)], stdin = PIPE)
-    kinit.stdin.write("{}\n".format(options.admin_password))
-    kinit.communicate()
-
-    if kinit.returncode != 0:
-        raise RuntimeError("kinit failed with exit code: " + kinit.returncode)
-
-    options.ocf_ldap.sasl_interactive_bind_s("", ldap.sasl.gssapi(""))
-
     # Process the users in the mid stage of approval first
-    with fancy_open(options.mid_approve, lock = True,
-                    pass_missing = True, delete = True) as f:
-        finalize_accounts(get_users(f, options), options)
+    try:
+        # XXX: Use python-kerberos for this?
+        kinit = Popen(["kinit", "{}/admin".format(options.admin_user)], stdin = PIPE)
+        kinit.stdin.write("{}\n".format(options.admin_password))
+        kinit.communicate()
 
-    check_call(["kdestroy"])
+        if kinit.returncode != 0:
+            raise RuntimeError("kinit failed with exit code: " + kinit.returncode)
+
+        options.ocf_ldap.sasl_interactive_bind_s("", ldap.sasl.gssapi(""))
+
+        with fancy_open(options.mid_approve, lock = True,
+                        pass_missing = True, delete = True) as f:
+            finalize_accounts(get_users(f, options), options)
+    finally:
+        check_call(["kdestroy"])
 
     # Process all of the recently requested accounts
     with fancy_open(options.users_file, lock = True,
