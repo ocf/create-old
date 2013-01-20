@@ -9,47 +9,68 @@ User deletion tool.
 """
 
 import argparse
+import errno
 from getpass import getpass
 import os
-import ldap
+import pexpect
 import shutil
-from subprocess import PIPE, Popen
+from subprocess import PIPE, Popen, check_call
 import sys
 
 from ocf import home_dir, http_dir, OCF_DN
 
+import ldap
+import ldap.sasl
+
 def _kerberos_rm(users, options):
-    kadmin = Popen(["kadmin", "-p", "{0}/admin".format(options.admin_user)], stdin = PIPE)
-    first = True
+    kadmin = pexpect.spawn("kadmin", ["-p", "{0}/admin".format(options.admin_user)])
+
+    kadmin.expect("kadmin> ")
 
     for user in users:
-        # Calling subprocess.Popen here because we don't have a decent
-        # kerberos python module for administration commands
-        # Call the add command
-        # XXX: Use pexpect here.
-        kadmin.stdin.write("delete {0}\n".format(user["account_name"]))
+        kadmin.sendline("del {0}".format(user["account_name"]))
 
-        if first:
-            # Autheticate the first time
-            kadmin.stdin.write("{0}\n".format(options.admin_password))
-            first = False
+        i = 0
 
-    kadmin.communicate()
+        while i == 0:
+            i = kadmin.expect(
+                ["{0}/admin@OCF.BERKELEY.EDU's Password:".format(options.admin_user),
+                 "kadmin> ",
+                 "kadmin: [^\n]*"])
 
-    if kadmin.returncode != 0:
-        raise RuntimeError("kdamin returned non-zero exit code: " + kadmin.returncode)
+            if i == 0:
+                kadmin.sendline(options.admin_password)
+            elif i == 2:
+                print kadmin.match.group(0)
+                kadmin.expect("kadmin> ")
+
+    kadmin.sendline("exit")
+    kadmin.expect(pexpect.EOF)
 
 def _ldap_rm(users, options):
     for user in users:
         dn = "uid={0},{1}".format(user["account_name"], OCF_DN)
-        options.ocf_ldap.delete_s(dn)
+
+        try:
+            options.ocf_ldap.delete_s(dn)
+        except ldap.NO_SUCH_OBJECT:
+            print "{0} does not exist in ldap".format(dn)
 
 def _rm_user_dirs(users):
     for user in users:
-        shutil.rmtree(home_dir(user["account_name"]))
-        shutil.rmtree(http_dir(user["account_name"]))
+        try:
+            shutil.rmtree(home_dir(user["account_name"]))
+        except OSError as e:
+            if e.errno != errno.ENOENT:
+                raise e
 
-def rm_user(users, options):
+        try:
+            shutil.rmtree(http_dir(user["account_name"]))
+        except OSError as e:
+            if e.errno != errno.ENOENT:
+                raise e
+
+def rm_users(users, options):
     _rm_user_dirs(users)
     _ldap_rm(users, options)
     _kerberos_rm(users, options)
@@ -81,6 +102,8 @@ def main(args):
     options.ocf_ldap.simple_bind_s("", "")
     options.ocf_ldap.protocol_version = ldap.VERSION3
 
+    options.accounts = [{"account_name": user} for user in options.accounts]
+
     # Autheticate our ldap session using gssapi
     options.admin_password = \
       getpass("{0}/admin@OCF.BERKELEY.EDU's Password: ".format(options.admin_user))
@@ -88,12 +111,15 @@ def main(args):
     # Process the users in the mid stage of approval first
     try:
         # XXX: Use python-kerberos for this?
-        kinit = Popen(["kinit", "{0}/admin".format(options.admin_user)], stdin = PIPE)
-        kinit.stdin.write("{0}\n".format(options.admin_password))
-        kinit.communicate()
+        kinit = pexpect.spawn("kinit {0}/admin".format(options.admin_user))
+        kinit.expect("{0}/admin@OCF.BERKELEY.EDU's Password: ".format(options.admin_user))
+        kinit.sendline(options.admin_password)
+        kinit.expect("\n")
 
-        if kinit.returncode != 0:
-            raise RuntimeError("kinit failed with exit code: " + kinit.returncode)
+        if kinit.expect(["kinit: Password incorrect", pexpect.EOF]) == 0:
+            print >>sys.stderr, \
+              "Incorrect password for {0}/admin".format(options.admin_user)
+            sys.exit()
 
         options.ocf_ldap.sasl_interactive_bind_s("", ldap.sasl.gssapi(""))
 
