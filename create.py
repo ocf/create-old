@@ -14,8 +14,9 @@ User creation tool.
 import argparse
 from getpass import getpass
 import os
+import pexpect
 import shutil
-from subprocess import Popen, PIPE, check_call
+from subprocess import check_call
 import sys
 
 from filter_accounts import filter_accounts
@@ -114,12 +115,15 @@ def main(args):
     # Process the users in the mid stage of approval first
     try:
         # XXX: Use python-kerberos for this?
-        kinit = Popen(["kinit", "{0}/admin".format(options.admin_user)], stdin = PIPE)
-        kinit.stdin.write("{0}\n".format(options.admin_password))
-        kinit.communicate()
+        kinit = pexpect.spawn("kinit {0}/admin".format(options.admin_user))
+        kinit.expect("{0}/admin@OCF.BERKELEY.EDU's Password: ".format(options.admin_user))
+        kinit.sendline(options.admin_password)
+        kinit.expect("\n")
 
-        if kinit.returncode != 0:
-            raise RuntimeError("kinit failed with exit code: " + kinit.returncode)
+        if kinit.expect(["kinit: Password incorrect", pexpect.EOF]) == 0:
+            print >>sys.stderr, \
+              "Incorrect password for {0}/admin".format(options.admin_user)
+            sys.exit()
 
         options.ocf_ldap.sasl_interactive_bind_s("", ldap.sasl.gssapi(""))
 
