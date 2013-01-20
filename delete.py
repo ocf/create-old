@@ -9,12 +9,13 @@ User deletion tool.
 """
 
 import argparse
+import datetime
 import errno
 from getpass import getpass
 import os
 import pexpect
 import shutil
-from subprocess import check_call
+from subprocess import Popen, PIPE, check_call
 import sys
 
 from ocf import home_dir, http_dir, OCF_DN
@@ -69,10 +70,34 @@ def _rm_user_dirs(users):
             if e.errno != errno.ENOENT:
                 raise e
 
+def _send_finalize_emails(users, options,
+                          me = "OCF staff <staff@ocf.berkeley.edu>",
+                          staff = "staff@ocf.berkeley.edu"):
+    """
+    Notify users and staff that accounts were created.
+    """
+
+    if users and options.email:
+        # Notify staff of all the created accounts
+        body = "Accounts deleted on {0}:\n".format(datetime.now())
+
+        for user in users:
+            body += "{0}\n".format(user["account_name"])
+
+        msg = MIMEText(body)
+        msg["Subject"] = "Deleted OCF accounts"
+        msg["From"] = me
+        msg["To"] = staff
+
+        s = Popen(["sendmail", "-t"], stdin = PIPE)
+        s.communicate(msg.as_string())
+
 def rm_users(users, options):
     _rm_user_dirs(users)
     _ldap_rm(users, options)
     _kerberos_rm(users, options)
+
+    _send_rm_emails(users, options)
 
 def _delete_parser():
     parser = argparse.ArgumentParser(description = "Delete user accounts.")
