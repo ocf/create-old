@@ -10,26 +10,14 @@ import os
 from pwd import getpwnam
 from subprocess import PIPE, Popen, check_call
 
+from ocf import home_dir, http_dir, OCF_DN
+
 ACCOUNT_CREATED_LETTER = \
   os.path.join(os.path.dirname(__file__), "txt", "acct.created.letter")
 
-def _homedir(account_name):
-    """
-    Returns the user's home directory: "/home/u/us/account_name".
-    """
-    return os.path.sep + \
-      os.path.join("home", account_name[0], account_name[:2], account_name)
-
-def _httpdir(account_name):
-    """
-    Returns the user's http directory: "/services/http/users/u/account_name".
-    """
-    return os.path.sep + \
-      os.path.join("services", "http", "users", account_name[0], account_name)
-
 def _ldap_add(users, connection, shell = "/bin/bash"):
     for user in users:
-        dn = "uid={},ou=People,dc=OCF,dc=Berkeley,dc=EDU".format(user["account_name"])
+        dn = "uid={},{}".format(user["account_name"], OCF_DN)
         attrs = {
             "objectClass": "ocfAccount",
             "objectClass": "account",
@@ -38,7 +26,7 @@ def _ldap_add(users, connection, shell = "/bin/bash"):
             "uid": user["account_name"],
             "uidNumber": user["uid_number"],
             "gidNumber": getgrnam("ocf").gr_gid,
-            "homeDirectory": _homedir(user["account_name"]),
+            "homeDirectory": home_dir(user["account_name"]),
             "loginShell": shell,
             "gecos": user["personal_owner"],
         }
@@ -56,8 +44,8 @@ def _ldap_add(users, connection, shell = "/bin/bash"):
     check_call(["nscd", "-i", "passwd"])
 
 def _homedir_add(user):
-    home = _homedir(user["account_name"])
-    http = _httpdir(user["account_name"])
+    home = home_dir(user["account_name"])
+    http = http_dir(user["account_name"])
 
     os.makedirs(home)
     os.makedirs(http)
@@ -77,7 +65,7 @@ def _homedir_add(user):
 
 def _forward_add(user):
     if user["forward"]:
-        forward = os.path.join(_homedir(user["account_name"]), ".forward")
+        forward = os.path.join(home_dir(user["account_name"]), ".forward")
 
         with open(forward, "w") as f:
             f.write(user["email"] + "\n")
@@ -95,6 +83,7 @@ def _kerberos_add(users, options)
           _decrypt_password(base64.b64decode(user["password"]), options.rsa_priv_key)
 
         # Call the add command
+        # XXX: Use pexpect here.
         kadmin.stdin.write("add --password={} --use-defaults {}\n".format(user_password, user["account_name"]))
 
         if first:
@@ -144,8 +133,7 @@ def _send_finalize_emails(users, options,
         s.communicate(msg.as_string())
 
 def _get_max_uid_number(connection):
-    entries = connection.search_st("ou=People,dc=OCF,dc=Berkeley,dc=EDU",
-                                   ldap.SCOPE_SUBTREE, "(uid=*)", ["uidNumber"])
+    entries = connection.search_st(OCF_DN, ldap.SCOPE_SUBTREE, "(uid=*)", ["uidNumber"])
     uid_numbers = (int(num)
                    for entry in entries
                    for num in entry[1]["uidNumber"])
