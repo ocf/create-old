@@ -148,18 +148,19 @@ def _get_max_uid_number(connection):
 def finalize_accounts(users, options):
     users = list(users)
 
-    # Need to assign uid to new users
-    print "Getting current max uid ..."
-    uid_start = _get_max_uid_number(options.ocf_ldap) + 1
-    print "UIDs for new users will start at {0}".format(uid_start)
+    if users:
+        # Need to assign uid to new users
+        print "Getting current max uid ..."
+        uid_start = _get_max_uid_number(options.ocf_ldap) + 1
+        print "UIDs for new users will start at {0}".format(uid_start)
 
-    for uid, user in enumerate(users, start = uid_start):
-        user["uid_number"] = uid
+        for uid, user in enumerate(users, start = uid_start):
+            user["uid_number"] = uid
 
-    for user in users:
-        _finalize_account(user, options)
+        for user in users:
+            _finalize_account(user, options)
 
-    _send_finalize_emails(users, options)
+        _send_finalize_emails(users, options)
 
 def _finalize_account(user, options):
     """
