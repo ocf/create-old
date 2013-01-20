@@ -55,6 +55,7 @@ def _finish_account_creation(src):
 
 def _create_parser():
     parser = argparse.ArgumentParser(description = "Process and create user accounts.")
+
     parser.add_argument("-u", "--usersfile", dest = "users_file",
                         default = "/opt/adm/approved.users",
                         help = "Input file of approved users")
@@ -62,7 +63,7 @@ def _create_parser():
                         default = "/opt/adm/mid_approved.users",
                         help = "Input file of users in mid stage of approval")
     parser.add_argument("-a", "--admin-user", dest = "admin_user",
-                        default = os.environ["SUDO_USER"],
+                        default = os.environ.get("SUDO_USER", os.environ.get("USER", "")),
                         help = "User to autheticate through kerberos with")
     parser.add_argument("-i", "--interactive", dest = "interactive",
                         action = "store_true",
@@ -94,6 +95,9 @@ def main(args):
     """
 
     options = _create_parser().parse_args(args = args)
+
+    if os.environ.get("USER", "") != "root":
+        raise RuntimeError("Not running as superuser")
 
     options.calnet_ldap = ldap.initialize(options.calnet_ldap_url)
     options.calnet_ldap.simple_bind_s("", "")
@@ -135,4 +139,4 @@ def main(args):
         write_users(f, [user for user, comment in needs_approval])
 
 if __name__ == "__main__":
-    main(sys.argv)
+    main(sys.argv[1:])

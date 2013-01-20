@@ -8,6 +8,7 @@ are really angels freeing you from the earth..." -- Jacob's Ladder
 User deletion tool.
 """
 
+import argparse
 import os
 import ldap
 import shutil
@@ -16,7 +17,7 @@ import sys
 
 from ocf import home_dir, http_dir, OCF_DN
 
-def _kerberos_rm(users, options)
+def _kerberos_rm(users, options):
     kadmin = Popen(["kadmin", "-p", "{}/admin".format(options.admin_user)], stdin = PIPE)
     first = True
 
@@ -54,8 +55,9 @@ def rm_user(users, options):
 
 def _delete_parser():
     parser = argparse.ArgumentParser(description = "Delete user accounts.")
+
     parser.add_argument("-a", "--admin-user", dest = "admin_user",
-                        default = os.environ["SUDO_USER"],
+                        default = os.environ.get("SUDO_USER", os.environ.get("USER", "")),
                         help = "User to autheticate through kerberos with")
     parser.add_argument("-n", "--no-email", dest = "email",
                         action = "store_false",
@@ -63,13 +65,16 @@ def _delete_parser():
     parser.add_argument("-o", "--ocfldap", dest = "ocf_ldap_url",
                         default = "ldaps://ldap.ocf.berkeley.edu",
                         help = "Url of OCF's LDAP")
-    parser.add_argument("accounts", nargs = "+",
-                        help = "User accounts to delete")
+    parser.add_argument("accounts", metavar = "account", nargs = "+",
+                        help = "User account to delete")
 
     return parser
 
 def main(args):
     options = _delete_parser().parse_args(args = args)
+
+    if os.environ.get("USER", "") != "root":
+        raise RuntimeError("Not running as superuser")
 
     options.ocf_ldap = ldap.initialize(options.ocf_ldap_url)
     options.ocf_ldap.simple_bind_s("", "")
@@ -96,4 +101,4 @@ def main(args):
         check_call(["kdestroy"])
 
 if __name__ == "__main__":
-    main(sys.argv)
+    main(sys.argv[1:])
