@@ -9,6 +9,7 @@ import os
 from subprocess import PIPE, Popen
 import sys
 
+from ocf import OCF_DN
 from utils import get_log_entries, fancy_open, write_users
 
 def _staff_approval(user, error_str, accepted, needs_approval, rejected, options):
@@ -122,7 +123,6 @@ def _filter_ocf_duplicates(accepted, needs_approval, rejected, options):
     Search the OCF ldap database for matching cn entries.
     """
 
-    base_dn = "ou=people,dc=ocf,dc=berkeley,dc=edu"
     retrieve_attrs = ["uidNumber", "cn"]
 
     accepted_new = []
@@ -133,7 +133,7 @@ def _filter_ocf_duplicates(accepted, needs_approval, rejected, options):
         name = user["group_owner" if user["is_group"] else "personal_owner"]
 
         search_filter = "cn=*{}*".format(name).replace(" ", "*")
-        results = options.ocf_ldap.search_st(base_dn, ldap.SCOPE_SUBTREE,
+        results = options.ocf_ldap.search_st(OCF_DN, ldap.SCOPE_SUBTREE,
                                              search_filter, retrieve_attrs)
 
         if (results and
