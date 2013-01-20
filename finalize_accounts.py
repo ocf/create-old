@@ -72,7 +72,7 @@ def _forward_add(user):
 
         os.chown(forward, getpwnam(user["account_name"]).pwd_uid, getgrnam("ocf").gr_gid)
 
-def _kerberos_add(users, options)
+def _kerberos_add(users, options):
     kadmin = Popen(["kadmin", "-p", "{}/admin".format(options.admin_user)], stdin = PIPE)
     first = True
 
