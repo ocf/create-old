@@ -19,8 +19,7 @@ def _staff_approval(user, error_str, accepted, needs_approval, rejected, options
 
     prompt = "{0}\n{1} ({2})\n"
     prompt += "Approve this account? "
-    prompt = prompt.format(error_str, user["account_name"],
-                           user["group_owner" if user["is_group"] else "personal_owner"])
+    prompt = prompt.format(error_str, user["account_name"], user["owner"])
 
     ret = raw_input(prompt).strip().lower()
 
@@ -96,18 +95,14 @@ def _filter_duplicates(key, error_str, accepted, needs_approval, rejected, optio
     return accepted_new, needs_approval_new, rejected_new
 
 def _fix_name(real_name):
-    return real_name.strip().lower() if real_name != "(null)" else None
+    return real_name.strip().lower()
 
 def _filter_account_name_duplicates(accepted, needs_approval, rejected, options):
     return _filter_duplicates("account_name", "Duplicate account name detected",
                               accepted, needs_approval, rejected, options, _fix_name)
 
-def _filter_real_name_duplicates(accepted, needs_approval, rejected, options):
-    return _filter_duplicates("personal_owner", "Duplicate real name detected",
-                              accepted, needs_approval, rejected, options, _fix_name)
-
-def _filter_group_duplicates(accepted, needs_approval, rejected, options):
-    return _filter_duplicates("group_owner", "Duplicate group name detected",
+def _filter_owner_duplicates(accepted, needs_approval, rejected, options):
+    return _filter_duplicates("owner", "Duplicate owner detected",
                               accepted, needs_approval, rejected, options, _fix_name)
 
 def _filter_calnet_uid_duplicates(accepted, needs_approval, rejected, options):
@@ -213,10 +208,8 @@ def _filter_usernames(accepted, needs_approval, rejected, options):
     rejected_new = rejected
 
     for user in accepted:
-        account_name = user["account_name"]
-        real_name = user["group_owner" if user["is_group"] else "personal_owner"]
-
-        message = "{0} is not an allowed username for {1}".format(account_name, real_name)
+        message = "{0} is not an allowed username for {1}".format(user["account_name"],
+                                                                  user["owner"])
         _staff_approval(user, message,
                         accepted_new, needs_approval_new, rejected_new, options)
 
@@ -233,8 +226,7 @@ def _send_filter_mail(accepted, needs_approval, rejected, options,
             body += "next time this script runs):.\n\n"
 
             for user in accepted:
-                owner = user["group_owner" if user["is_group"] else "personal_owner"]
-                body += "    {0} ({1})\n".format(user["account_name"], owner)
+                body += "    {0} ({1})\n".format(user["account_name"], user["owner"])
 
             body += "\n"
 
@@ -242,8 +234,8 @@ def _send_filter_mail(accepted, needs_approval, rejected, options,
             body += "Needs staff approval:\n\n"
 
             for user, comment in needs_approval:
-                owner = user["group_owner" if user["is_group"] else "personal_owner"]
-                body += "    {0} ({1}): {2}\n".format(user["account_name"], owner, comment)
+                body += "    {0} ({1}): {2}\n".format(user["account_name"],
+                                                      user["owner"], comment)
 
             body += "\n"
 
@@ -251,8 +243,8 @@ def _send_filter_mail(accepted, needs_approval, rejected, options,
             body += "Rejected:\n\n"
 
             for user, comment in rejected:
-                owner = user["group_owner" if user["is_group"] else "personal_owner"]
-                body += "    {0} ({1}): {2}\n".format(user["account_name"], owner, comment)
+                body += "    {0} ({1}): {2}\n".format(user["account_name"],
+                                                      user["owner"], comment)
 
             body += "\n"
 
@@ -285,13 +277,9 @@ def filter_accounts(users, options):
     accepted, needs_approval, rejected = \
       _filter_account_name_duplicates(accepted, needs_approval, rejected, options)
 
-    # Check for real name duplicates
+    # Check for owner duplicates
     accepted, needs_approval, rejected = \
-      _filter_real_name_duplicates(accepted, needs_approval, rejected, options)
-
-    # Check for group duplicates
-    accepted, needs_approval, rejected = \
-      _filter_group_duplicates(accepted, needs_approval, rejected, options)
+      _filter_owner_duplicates(accepted, needs_approval, rejected, options)
 
     # Check for CalNet UID duplicates
     accepted, needs_approval, rejected = \

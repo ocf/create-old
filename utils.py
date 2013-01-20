@@ -66,14 +66,16 @@ def get_users(stream, options):
         if user["personal_owner"] != "(null)" and user["group_owner"] != "(null)":
             raise Exception("Entry has both personal_owner and group_owner")
 
+        user["owner"] = user["group_owner" if user["is_group"] else "personal_owner"]
+
         yield user
 
 def write_users(stream, users):
     for user in users:
         items = \
           [user["account_name"],
-           user["personal_owner"] if not user["is_group"] else "(null)",
-           user["group_owner"] if user["is_group"] else "(null)",
+           user["owner"] if not user["is_group"] else "(null)",
+           user["owner"] if user["is_group"] else "(null)",
            user["email"],
            str(int(user["forward"])),
            str(int(user["is_group"])),
@@ -97,17 +99,21 @@ def get_log_entries(stream):
 
         user = {}
         user["account_name"] = l[0]
-        user["group_owner"] = None
+        user["owner"] = None
         user["id_number"] = None # can be calnet uid or student id (old)
 
         if l[1] != "(null)":
-            user["group_owner"] = l[1]
+            user["owner"] = l[1]
+            user["is_group"] = True
         if l[2] != "(null)":
             user["id_number"] = l[2]
 
         # the extra info at the end of the line isn't used
-        # user["staff_approver"] = l[3]
-        # user["staff_machine"] = l[4]
+        user["staff_approver"] = l[3]
+        user["staff_machine"] = l[4]
+
+        # ? = bool(int(l[5]))
+        user["is_group"] = bool(int(l[6]))
 
         yield user
 
