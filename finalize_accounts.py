@@ -7,6 +7,7 @@ from email.mime.text import MIMEText
 from grp import getgrnam
 import ldap
 import os
+import pexpect
 from pwd import getpwnam
 from subprocess import PIPE, Popen, check_call
 
@@ -22,13 +23,13 @@ def _ldap_add(users, connection, shell = "/bin/bash"):
             "objectClass": "ocfAccount",
             "objectClass": "account",
             "objectClass": "posixAccount",
-            "cn": user["personal_owner"],
+            "cn": user["owner"],
             "uid": user["account_name"],
             "uidNumber": user["uid_number"],
             "gidNumber": getgrnam("ocf").gr_gid,
             "homeDirectory": home_dir(user["account_name"]),
             "loginShell": shell,
-            "gecos": user["personal_owner"],
+            "gecos": user["owner"],
         }
 
         if "calnet_uid" in user:
@@ -73,28 +74,33 @@ def _forward_add(user):
         os.chown(forward, getpwnam(user["account_name"]).pwd_uid, getgrnam("ocf").gr_gid)
 
 def _kerberos_add(users, options):
-    kadmin = Popen(["kadmin", "-p", "{0}/admin".format(options.admin_user)], stdin = PIPE)
-    first = True
+    kadmin = pexpect.spawn("kadmin", ["-p", "{0}/admin".format(options.admin_user)])
+    kadmin.expect("kdamin> ")
 
     for user in users:
-        # Calling subprocess.Popen here because we don't have a decent
-        # kerberos python module for administration commands
+        # We don't have a decent kerberos python module for administration commands
         user_passord = \
           _decrypt_password(base64.b64decode(user["password"]), options.rsa_priv_key)
 
         # Call the add command
-        # XXX: Use pexpect here.
-        kadmin.stdin.write("add --password={0} --use-defaults {1}\n".format(user_password, user["account_name"]))
+        kadmin.sendline("add --password={0} --use-defaults {1}\n".format(user_password, user["account_name"]))
 
-        if first:
-            # Autheticate the first time
-            kadmin.stdin.write("{0}\n".format(options.admin_password))
-            first = False
+        i = 0
 
-    kadmin.communicate()
+        while i == 0:
+            i = kadmin.expect(
+                ["{0}/admin@OCF.BERKELEY.EDU's Password:".format(options.admin_user),
+                 "kadmin> ",
+                 "kadmin: [^\n]*"])
 
-    if kadmin.returncode != 0:
-        raise RuntimeError("kdamin returned non-zero exit code: " + kadmin.returncode)
+            if i == 0:
+                kadmin.sendline(options.admin_password)
+            elif i == 2:
+                print kadmin.match.group(0)
+                kadmin.expect("kadmin> ")
+
+    kadmin.sendline("exit")
+    kadmin.expect(pexpect.EOF)
 
 def _send_finalize_emails(users, options,
                           me = "OCF staff <staff@ocf.berkeley.edu>",
@@ -121,8 +127,7 @@ def _send_finalize_emails(users, options,
         body = "Accounts created on {0}:\n".format(datetime.now())
 
         for user in users:
-            owner = user["group_owner" if user["is_group"] else "personal_owner"]
-            body += "{0}: {1}\n".format(user["account_name"], owner)
+            body += "{0}: {1}\n".format(user["account_name"], user["owner"])
 
         msg = MIMEText(body)
         msg["Subject"] = "Created OCF accounts"
@@ -161,8 +166,7 @@ def _finalize_account(user, options):
     Create a new account on the system.
     """
 
-    owner = user["group_owner" if user["is_group"] else "personal_owner"]
-    print "Creating new account, {0}, for {1}".format(user["account_name"], owner)
+    print "Creating new account, {0}, for {1}".format(user["account_name"], user["owner"])
     return
 
     _ldap_add([user], options.ocf_ldap)
