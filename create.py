@@ -39,7 +39,7 @@ def _finish_account_creation(src):
     now = datetime.now().strftime("%Y-%m-%d")
     directory, name = os.path.split(source)
 
-    dest = os.path.join(directory, "..", "oldapprovedusers", "{}.{}".format(name, now))
+    dest = os.path.join(directory, "..", "oldapprovedusers", "{0}.{1}".format(name, now))
     shutil.move(src, dest)
 
     # All this chown / chmod'ing necessary? Aren't we guaranteed to be running as root?
@@ -109,13 +109,13 @@ def main(args):
 
     # Autheticate our ldap session using gssapi
     options.admin_password = \
-      getpass("{}/admin@OCF.BERKELEY.EDU's Password: ".format(options.admin_user))
+      getpass("{0}/admin@OCF.BERKELEY.EDU's Password: ".format(options.admin_user))
 
     # Process the users in the mid stage of approval first
     try:
         # XXX: Use python-kerberos for this?
-        kinit = Popen(["kinit", "{}/admin".format(options.admin_user)], stdin = PIPE)
-        kinit.stdin.write("{}\n".format(options.admin_password))
+        kinit = Popen(["kinit", "{0}/admin".format(options.admin_user)], stdin = PIPE)
+        kinit.stdin.write("{0}\n".format(options.admin_password))
         kinit.communicate()
 
         if kinit.returncode != 0:

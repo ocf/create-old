@@ -17,7 +17,7 @@ def _staff_approval(user, error_str, accepted, needs_approval, rejected, options
         needs_approval.append((user, error_str))
         return
 
-    prompt = "{}\n{} ({})\n"
+    prompt = "{0}\n{1} ({2})\n"
     prompt += "Approve this account? "
     prompt = prompt.format(error_str, user["account_name"],
                            user["group_owner" if user["is_group"] else "personal_owner"])
@@ -132,7 +132,7 @@ def _filter_ocf_duplicates(accepted, needs_approval, rejected, options):
     for user in accepted:
         name = user["group_owner" if user["is_group"] else "personal_owner"]
 
-        search_filter = "cn=*{}*".format(name).replace(" ", "*")
+        search_filter = "cn=*{0}*".format(name).replace(" ", "*")
         results = options.ocf_ldap.search_st(OCF_DN, ldap.SCOPE_SUBTREE,
                                              search_filter, retrieve_attrs)
 
@@ -165,7 +165,7 @@ def _filter_registration_status(accepted, needs_approval, rejected, options):
             accepted_new += user,
             continue
 
-        search_filter = "uid={}".format(user["calnet_uid"])
+        search_filter = "uid={0}".format(user["calnet_uid"])
 
         results = options.calnet_ldap.search_st(base_dn, ldap.SCOPE_SUBTREE,
                                                 search_filter, retrieve_attrs)
@@ -199,7 +199,7 @@ def _filter_registration_status(accepted, needs_approval, rejected, options):
              "AFFILIATE-STATUS-EXPIRED" not in affiliation)):
             accepted_new += user,
         else:
-            message = "CalNet status not eligible for account ({})"
+            message = "CalNet status not eligible for account ({0})"
             message.format(", ".join(affiliation))
 
             _staff_approval(user, message,
@@ -216,7 +216,7 @@ def _filter_usernames(accepted, needs_approval, rejected, options):
         account_name = user["account_name"]
         real_name = user["group_owner" if user["is_group"] else "personal_owner"]
 
-        message = "{} is not an allowed username for {}".format(account_name, real_name)
+        message = "{0} is not an allowed username for {1}".format(account_name, real_name)
         _staff_approval(user, message,
                         accepted_new, needs_approval_new, rejected_new, options)
 
@@ -234,7 +234,7 @@ def _send_filter_mail(accepted, needs_approval, rejected, options,
 
             for user in accepted:
                 owner = user["group_owner" if user["is_group"] else "personal_owner"]
-                body += "    {} ({})\n".format(user["account_name"], owner)
+                body += "    {0} ({1})\n".format(user["account_name"], owner)
 
             body += "\n"
 
@@ -243,7 +243,7 @@ def _send_filter_mail(accepted, needs_approval, rejected, options,
 
             for user, comment in needs_approval:
                 owner = user["group_owner" if user["is_group"] else "personal_owner"]
-                body += "    {} ({}): {}\n".format(user["account_name"], owner, comment)
+                body += "    {0} ({1}): {2}\n".format(user["account_name"], owner, comment)
 
             body += "\n"
 
@@ -252,7 +252,7 @@ def _send_filter_mail(accepted, needs_approval, rejected, options,
 
             for user, comment in rejected:
                 owner = user["group_owner" if user["is_group"] else "personal_owner"]
-                body += "    {} ({}): {}\n".format(user["account_name"], owner, comment)
+                body += "    {0} ({1}): {2}\n".format(user["account_name"], owner, comment)
 
             body += "\n"
 

@@ -52,7 +52,7 @@ def get_users(stream, options):
         split = line.split(":")
 
         if len(split) != len(fields):
-            raise Exception("Incorrect number of fields: {}".format(line))
+            raise Exception("Incorrect number of fields: {0}".format(line))
 
         # Construct the user object, a dictionary of the different attributes
         # for the account to be created.

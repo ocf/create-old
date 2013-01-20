@@ -9,16 +9,17 @@ User deletion tool.
 """
 
 import argparse
+from getpass import getpass
 import os
 import ldap
 import shutil
-from subprocess import PIPE, Popen, check_call
+from subprocess import PIPE, Popen
 import sys
 
 from ocf import home_dir, http_dir, OCF_DN
 
 def _kerberos_rm(users, options):
-    kadmin = Popen(["kadmin", "-p", "{}/admin".format(options.admin_user)], stdin = PIPE)
+    kadmin = Popen(["kadmin", "-p", "{0}/admin".format(options.admin_user)], stdin = PIPE)
     first = True
 
     for user in users:
@@ -26,11 +27,11 @@ def _kerberos_rm(users, options):
         # kerberos python module for administration commands
         # Call the add command
         # XXX: Use pexpect here.
-        kadmin.stdin.write("delete {}\n".format(user["account_name"]))
+        kadmin.stdin.write("delete {0}\n".format(user["account_name"]))
 
         if first:
             # Autheticate the first time
-            kadmin.stdin.write("{}\n".format(options.admin_password))
+            kadmin.stdin.write("{0}\n".format(options.admin_password))
             first = False
 
     kadmin.communicate()
@@ -40,7 +41,7 @@ def _kerberos_rm(users, options):
 
 def _ldap_rm(users, options):
     for user in users:
-        dn = "uid={},{}".format(user["account_name"], OCF_DN)
+        dn = "uid={0},{1}".format(user["account_name"], OCF_DN)
         options.ocf_ldap.delete_s(dn)
 
 def _rm_user_dirs(users):
@@ -82,13 +83,13 @@ def main(args):
 
     # Autheticate our ldap session using gssapi
     options.admin_password = \
-      getpass("{}/admin@OCF.BERKELEY.EDU's Password: ".format(options.admin_user))
+      getpass("{0}/admin@OCF.BERKELEY.EDU's Password: ".format(options.admin_user))
 
     # Process the users in the mid stage of approval first
     try:
         # XXX: Use python-kerberos for this?
-        kinit = Popen(["kinit", "{}/admin".format(options.admin_user)], stdin = PIPE)
-        kinit.stdin.write("{}\n".format(options.admin_password))
+        kinit = Popen(["kinit", "{0}/admin".format(options.admin_user)], stdin = PIPE)
+        kinit.stdin.write("{0}\n".format(options.admin_password))
         kinit.communicate()
 
         if kinit.returncode != 0:

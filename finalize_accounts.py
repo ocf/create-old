@@ -17,7 +17,7 @@ ACCOUNT_CREATED_LETTER = \
 
 def _ldap_add(users, connection, shell = "/bin/bash"):
     for user in users:
-        dn = "uid={},{}".format(user["account_name"], OCF_DN)
+        dn = "uid={0},{1}".format(user["account_name"], OCF_DN)
         attrs = {
             "objectClass": "ocfAccount",
             "objectClass": "account",
@@ -73,7 +73,7 @@ def _forward_add(user):
         os.chown(forward, getpwnam(user["account_name"]).pwd_uid, getgrnam("ocf").gr_gid)
 
 def _kerberos_add(users, options):
-    kadmin = Popen(["kadmin", "-p", "{}/admin".format(options.admin_user)], stdin = PIPE)
+    kadmin = Popen(["kadmin", "-p", "{0}/admin".format(options.admin_user)], stdin = PIPE)
     first = True
 
     for user in users:
@@ -84,11 +84,11 @@ def _kerberos_add(users, options):
 
         # Call the add command
         # XXX: Use pexpect here.
-        kadmin.stdin.write("add --password={} --use-defaults {}\n".format(user_password, user["account_name"]))
+        kadmin.stdin.write("add --password={0} --use-defaults {1}\n".format(user_password, user["account_name"]))
 
         if first:
             # Autheticate the first time
-            kadmin.stdin.write("{}\n".format(options.admin_password))
+            kadmin.stdin.write("{0}\n".format(options.admin_password))
             first = False
 
     kadmin.communicate()
@@ -118,11 +118,11 @@ def _send_finalize_emails(users, options,
             s.communicate(msg.as_string())
 
         # Notify staff of all the created accounts
-        body = "Accounts created on {}:\n".format(datetime.now())
+        body = "Accounts created on {0}:\n".format(datetime.now())
 
         for user in users:
             owner = user["group_owner" if user["is_group"] else "personal_owner"]
-            body += "{}: {}\n".format(user["account_name"], owner)
+            body += "{0}: {1}\n".format(user["account_name"], owner)
 
         msg = MIMEText(body)
         msg["Subject"] = "Created OCF accounts"
@@ -146,7 +146,7 @@ def finalize_accounts(users, options):
     # Need to assign uid to new users
     print "Getting current max uid ..."
     uid_start = _get_max_uid_number(options.ocf_ldap) + 1
-    print "UIDs for new users will start at {}".format(uid_start)
+    print "UIDs for new users will start at {0}".format(uid_start)
 
     for uid, user in enumerate(users, start = uid_start):
         user["uid_number"] = uid
@@ -162,7 +162,7 @@ def _finalize_account(user, options):
     """
 
     owner = user["group_owner" if user["is_group"] else "personal_owner"]
-    print "Creating new account, {}, for {}".format(user["account_name"], owner)
+    print "Creating new account, {0}, for {1}".format(user["account_name"], owner)
     return
 
     _ldap_add([user], options.ocf_ldap)
