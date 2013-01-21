@@ -58,10 +58,10 @@ def _create_parser():
     parser = argparse.ArgumentParser(description = "Process and create user accounts.")
 
     parser.add_argument("-u", "--usersfile", dest = "users_file",
-                        default = "/opt/adm/approved.users",
+                        default = "/opt/create/public/approved.users",
                         help = "Input file of approved users")
     parser.add_argument("-m", "--midapprove", dest = "mid_approve",
-                        default = "/opt/adm/mid_approved.users",
+                        default = "/opt/create/private/mid_approved.users",
                         help = "Input file of users in mid stage of approval")
     parser.add_argument("-a", "--admin-user", dest = "admin_user",
                         default = os.environ.get("SUDO_USER", os.environ.get("USER", "")),
@@ -73,7 +73,7 @@ def _create_parser():
                         action = "store_false",
                         help = "Don't send account creation / rejection emails")
     parser.add_argument("-l", "--logfile", dest = "log_file",
-                        default = "/opt/adm/approved.log",
+                        default = "/opt/create/public/approved.log",
                         help = "Input file of approved log")
     parser.add_argument("-p", "--priv-key", dest = "rsa_priv_key",
                         default = "/opt/create/private/private_pass.pem",
