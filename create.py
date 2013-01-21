@@ -76,7 +76,7 @@ def _create_parser():
                         default = "/opt/adm/approved.log",
                         help = "Input file of approved log")
     parser.add_argument("-p", "--priv-key", dest = "rsa_priv_key",
-                        default = "/opt/adm/pass_private.pem",
+                        default = "/opt/create/private/private_pass.pem",
                         help = "Private key to decrypt user passwords")
     parser.add_argument("-c", "--calnetldap", dest = "calnet_ldap_url",
                         default = "ldap://ldap.berkeley.edu",
