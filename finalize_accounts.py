@@ -5,11 +5,13 @@ Code to create the user accounts on the system.
 from datetime import datetime
 from email.mime.text import MIMEText
 from grp import getgrnam
-import ldap
 import os
 import pexpect
 from pwd import getpwnam
 from subprocess import PIPE, Popen, check_call
+
+import ldap
+import ldap.modlist
 
 from ocf import home_dir, http_dir, OCF_DN
 
