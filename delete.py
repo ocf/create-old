@@ -70,11 +70,11 @@ def _rm_user_dirs(users):
             if e.errno != errno.ENOENT:
                 raise e
 
-def _send_finalize_emails(users, options,
-                          me = "OCF staff <staff@ocf.berkeley.edu>",
-                          staff = "staff@ocf.berkeley.edu"):
+def _send_rm_emails(users, options,
+                    me = "OCF staff <staff@ocf.berkeley.edu>",
+                    staff = "staff@ocf.berkeley.edu"):
     """
-    Notify users and staff that accounts were created.
+    Notify users and staff that accounts were deleted.
     """
 
     if users and options.email:
