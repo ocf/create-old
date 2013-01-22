@@ -30,7 +30,7 @@ def _ldap_add(users, connection, shell = "/bin/bash"):
             "objectClass": "posixAccount",
             "cn": user["owner"],
             "uid": user["account_name"],
-            "uidNumber": user["uid_number"],
+            "uidNumber": str(user["uid_number"]),
             "gidNumber": str(getgrnam("ocf").gr_gid),
             "homeDirectory": home_dir(user["account_name"]),
             "loginShell": shell,
