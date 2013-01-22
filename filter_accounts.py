@@ -165,7 +165,8 @@ def _filter_registration_status(accepted, needs_approval, rejected, options):
         results = options.calnet_ldap.search_st(base_dn, ldap.SCOPE_SUBTREE,
                                                 search_filter, retrieve_attrs)
         if not results:
-            needs_approval_new += (user, "No CalNet entry found")
+            _staff_approval(user, "No CalNet entry found", accepted_new,
+                            needs_approval_new, rejected_new, options)
             continue
 
         affiliation = results[0][1]["berkeleyEduAffiliations"]
