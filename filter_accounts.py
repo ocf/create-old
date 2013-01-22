@@ -3,6 +3,7 @@ Module to filter user accounts into good users, problematic users, and users tha
 require manual staff approval.
 """
 
+from collections import Counter
 from email.mime.text import MIMEText
 import ldap
 import os
@@ -43,10 +44,10 @@ def _filter_log_duplicates(accepted, needs_approval, rejected, options):
 
     with open(options.log_file) as f:
         log_users = get_log_entries(f)
-        log_user_names = set(user["account_name"] for user in log_users)
+        log_user_names = Counter(user["account_name"] for user in log_users)
 
     for user in accepted:
-        if user["account_name"] in log_user_names:
+        if log_user_names[user["account_name"]] > 1:
             _staff_approval(user, "Duplicate account name found in log file",
                             accepted_new, needs_approval_new, rejected_new, options)
         else:

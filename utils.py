@@ -80,7 +80,6 @@ def write_users(stream, users):
            str(int(user["forward"])),
            str(int(user["is_group"])),
            user["password"],
-           user["key"],
            user["calnet_uid"]]
 
         stream.write(":".join(items) + "\n")
@@ -112,7 +111,7 @@ def get_log_entries(stream):
         user["staff_approver"] = l[3]
         user["staff_machine"] = l[4]
 
-        # ? = bool(int(l[5]))
+        user["created"] = bool(int(l[5]))
         user["is_group"] = bool(int(l[6]))
 
         yield user

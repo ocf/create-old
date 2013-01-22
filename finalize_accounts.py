@@ -4,11 +4,14 @@ Code to create the user accounts on the system.
 
 from datetime import datetime
 from email.mime.text import MIMEText
+from getpass import getuser
 from grp import getgrnam
 import os
 import pexpect
 from pwd import getpwnam
+from socket import gethostname
 from subprocess import PIPE, Popen, check_call
+from time import asctime
 
 import ldap
 import ldap.modlist
@@ -164,6 +167,13 @@ def finalize_accounts(users, options):
 
         _send_finalize_emails(users, options)
 
+def _log_created(user, options):
+    with fancy_open(options.log_file, "a", lock = True) as f:
+        sections = [user["account_name"], user["owner"], user["calnet_uid"],
+                    getuser(), gethostname(), 1, user["is_group"], asctime()]
+
+        f.write(":".join([str(i) for i in sections]) + "\n")
+
 def _finalize_account(user, options):
     """
     Create a new account on the system.
@@ -175,3 +185,5 @@ def _finalize_account(user, options):
     _homedir_add(user)
     _forward_add(user)
     _kerberos_add([user], options)
+
+    _log_created(user, options)
