@@ -171,7 +171,7 @@ def finalize_accounts(users, options):
 def _log_created(user, options):
     with fancy_open(options.log_file, "a", lock = True) as f:
         sections = [user["account_name"], user["owner"], user["calnet_uid"],
-                    getuser(), gethostname(), 1, user["is_group"], asctime()]
+                    getuser(), gethostname(), 1, int(user["is_group"]), asctime()]
 
         f.write(":".join([str(i) for i in sections]) + "\n")
 
