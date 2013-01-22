@@ -62,7 +62,7 @@ def _homedir_add(user):
     os.chmod(http, 0000)
 
     for name in [".cshrc", ".bashrc", ".bash_profile", ".bash_logout"]:
-        shutil.copy2(os.path.join(os.path.dirname(__file__), rc, name), home)
+        shutil.copy2(os.path.join(os.path.dirname(__file__), "rc", name), home)
 
         dest = os.path.join(home, name)
         os.chown(dest, getpwnam(user["account_name"]).pw_uid, getgrnam("ocf").gr_gid)
