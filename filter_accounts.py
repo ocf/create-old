@@ -224,7 +224,7 @@ def _send_filter_mail(accepted, needs_approval, rejected, options,
 
         if accepted:
             body += "Automatically accepted (Accounts will be created "
-            body += "next time this script runs):.\n\n"
+            body += "next time this script runs):\n\n"
 
             for user in accepted:
                 body += "    {0} ({1})\n".format(user["account_name"], user["owner"])
@@ -254,7 +254,7 @@ def _send_filter_mail(accepted, needs_approval, rejected, options,
 
         # Send out the mail!
         msg = MIMEText(body)
-        msg["Subject"] = "Account Filtering Results (Testing, please ignore)"
+        msg["Subject"] = "Account Filtering Results"
         msg["From"] = me
         msg["To"] = staff
 
