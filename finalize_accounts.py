@@ -77,7 +77,7 @@ def _forward_add(user):
         with open(forward, "w") as f:
             f.write(user["email"] + "\n")
 
-        os.chown(forward, getpwnam(user["account_name"]).pwd_uid, getgrnam("ocf").gr_gid)
+        os.chown(forward, getpwnam(user["account_name"]).pw_uid, getgrnam("ocf").gr_gid)
 
 def _kerberos_add(users, options):
     kadmin = pexpect.spawn("kadmin", ["-p", "{0}/admin".format(options.admin_user)])
