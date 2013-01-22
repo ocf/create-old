@@ -41,7 +41,7 @@ def decrypt_password(password, priv_key):
 
 def get_users(stream, options):
     fields = ("account_name", "personal_owner", "group_owner", "email",
-              "forward", "is_group", "password", "key", "calnet_uid")
+              "forward", "is_group", "password", "calnet_uid")
 
     for line in stream:
         line = line.strip()
