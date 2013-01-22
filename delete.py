@@ -9,7 +9,7 @@ User deletion tool.
 """
 
 import argparse
-import datetime
+from datetime import datetime
 import errno
 from getpass import getpass
 import os
