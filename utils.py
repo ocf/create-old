@@ -98,14 +98,8 @@ def get_log_entries(stream):
 
         user = {}
         user["account_name"] = l[0]
-        user["owner"] = None
-        user["id_number"] = None # can be calnet uid or student id (old)
-
-        if l[1] != "(null)":
-            user["owner"] = l[1]
-            user["is_group"] = True
-        if l[2] != "(null)":
-            user["id_number"] = l[2]
+        user["personal_owner"] = l[1]
+        user["group_owner"] = l[2]
 
         # the extra info at the end of the line isn't used
         user["staff_approver"] = l[3]
@@ -113,6 +107,8 @@ def get_log_entries(stream):
 
         user["created"] = bool(int(l[5]))
         user["is_group"] = bool(int(l[6]))
+
+        user["owner"] = user["group_owner" if user["is_group"] else "personal_owner"]
 
         yield user
 
