@@ -85,7 +85,7 @@ def _kerberos_add(users, options):
 
     for user in users:
         # We don't have a decent kerberos python module for administration commands
-        user_passord = \
+        user_password = \
           decrypt_password(base64.b64decode(user["password"]), options.rsa_priv_key).decode()
 
         # Call the add command
