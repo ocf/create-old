@@ -31,14 +31,14 @@ def _ldap_add(users, connection, shell = "/bin/bash"):
             "cn": user["owner"],
             "uid": user["account_name"],
             "uidNumber": user["uid_number"],
-            "gidNumber": getgrnam("ocf").gr_gid,
+            "gidNumber": str(getgrnam("ocf").gr_gid),
             "homeDirectory": home_dir(user["account_name"]),
             "loginShell": shell,
             "gecos": user["owner"],
         }
 
         if "calnet_uid" in user:
-            attrs["calNetuid"] = user["calnet_uid"]
+            attrs["calNetuid"] = str(user["calnet_uid"])
         elif not user["is_group"]:
             raise KeyError("User does not have calnet uid set")
 
