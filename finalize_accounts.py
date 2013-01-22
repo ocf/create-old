@@ -9,6 +9,7 @@ from grp import getgrnam
 import os
 import pexpect
 from pwd import getpwnam
+import shutil
 from socket import gethostname
 from subprocess import PIPE, Popen, check_call
 from time import asctime
