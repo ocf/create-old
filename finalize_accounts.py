@@ -168,7 +168,6 @@ def _finalize_account(user, options):
     """
 
     print "Creating new account, {0}, for {1}".format(user["account_name"], user["owner"])
-    return
 
     _ldap_add([user], options.ocf_ldap)
     _homedir_add(user)
