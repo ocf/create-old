@@ -18,7 +18,7 @@ from time import asctime
 import ldap
 import ldap.modlist
 
-from utils import decrypt_password
+from utils import decrypt_password, fancy_open
 from ocf import home_dir, http_dir, OCF_DN
 
 ACCOUNT_CREATED_LETTER = \
