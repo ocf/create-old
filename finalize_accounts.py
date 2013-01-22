@@ -2,6 +2,7 @@
 Code to create the user accounts on the system.
 """
 
+import base64
 from datetime import datetime
 from email.mime.text import MIMEText
 from getpass import getuser
