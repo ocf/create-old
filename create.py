@@ -134,12 +134,12 @@ def main(args):
         check_call(["kdestroy"])
 
     # Process all of the recently requested accounts
-    with fancy_open(options.users_file, "r+", lock = True,
+    with fancy_open(options.users_file, lock = True,
                     pass_missing = True) as f:
         needs_approval = filter_accounts(get_users(f, options), options)
 
-        # Write the users needing staff approval back to the users file
-    # with fancy_open(options.users_file, "w", lock = True) as f:
+    # Write the users needing staff approval back to the users file
+    with fancy_open(options.users_file, "w", lock = True) as f:
         write_users(f, [user for user, comment in needs_approval])
 
 if __name__ == "__main__":
