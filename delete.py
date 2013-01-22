@@ -10,6 +10,7 @@ User deletion tool.
 
 import argparse
 from datetime import datetime
+from email.mime.text import MIMEText
 import errno
 from getpass import getpass
 import os
