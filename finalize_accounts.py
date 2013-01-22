@@ -25,20 +25,18 @@ def _ldap_add(users, connection, shell = "/bin/bash"):
     for user in users:
         dn = "uid={0},{1}".format(user["account_name"], OCF_DN)
         attrs = {
-            "objectClass": "ocfAccount",
-            "objectClass": "account",
-            "objectClass": "posixAccount",
-            "cn": user["owner"],
-            "uid": user["account_name"],
-            "uidNumber": str(user["uid_number"]),
-            "gidNumber": str(getgrnam("ocf").gr_gid),
-            "homeDirectory": home_dir(user["account_name"]),
-            "loginShell": shell,
-            "gecos": user["owner"],
+            "objectClass": ["ocfAccount", "account", "posixAccount"],
+            "cn": [user["owner"]],
+            "uid": [user["account_name"]],
+            "uidNumber": [str(user["uid_number"])],
+            "gidNumber": [str(getgrnam("ocf").gr_gid)],
+            "homeDirectory": [home_dir(user["account_name"])],
+            "loginShell": [shell],
+            "gecos": [user["owner"]],
         }
 
         if "calnet_uid" in user:
-            attrs["calNetuid"] = str(user["calnet_uid"])
+            attrs["calNetuid"] = [str(user["calnet_uid"])]
         elif not user["is_group"]:
             raise KeyError("User does not have calnet uid set")
 
