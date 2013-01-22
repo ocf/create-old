@@ -79,7 +79,7 @@ def _forward_add(user):
 
 def _kerberos_add(users, options):
     kadmin = pexpect.spawn("kadmin", ["-p", "{0}/admin".format(options.admin_user)])
-    kadmin.expect("kdamin> ")
+    kadmin.expect("kadmin> ")
 
     for user in users:
         # We don't have a decent kerberos python module for administration commands
