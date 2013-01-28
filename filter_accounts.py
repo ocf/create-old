@@ -200,7 +200,7 @@ def _filter_registration_status(accepted, needs_approval, rejected, options):
             ("STUDENT-TYPE-REGISTERED" in affiliation and
              "STUDENT-STATUS-EXPIRED" not in affiliation)
             or
-            (set(affiliation).intersects(allowed_affiliates) and
+            (set(affiliation).intersection(allowed_affiliates) and
              "AFFILIATE-STATUS-EXPIRED" not in affiliation)):
             accepted_new += user,
         else:
