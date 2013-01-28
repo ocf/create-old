@@ -205,7 +205,7 @@ def _filter_registration_status(accepted, needs_approval, rejected, options):
             accepted_new += user,
         else:
             message = "CalNet status not eligible for account ({0})"
-            message.format(", ".join(affiliation))
+            message = message.format(", ".join(affiliation))
 
             _staff_approval(user, message,
                             accepted_new, needs_approval_new, rejected_new, options)
