@@ -35,7 +35,6 @@ def _ldap_add(users, connection, shell = "/bin/bash"):
             "gidNumber": [str(getgrnam("ocf").gr_gid)],
             "homeDirectory": [home_dir(user["account_name"])],
             "loginShell": [shell],
-            "gecos": [user["owner"]],
         }
 
         if "calnet_uid" in user:
