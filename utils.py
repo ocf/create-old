@@ -93,22 +93,22 @@ def get_log_entries(stream):
 
         l = line.split(":")
 
-        if len(l) != 10:
+        if len(l) not in [10, 11]:
             raise Exception("Line has unexpected format")
 
         user = {}
         user["account_name"] = l[0]
-        user["personal_owner"] = l[1]
-        user["group_owner"] = l[2]
+        user["owner"] = l[1]
+        user["university_id"] = l[2]
 
-        # the extra info at the end of the line isn't used
-        user["staff_approver"] = l[3]
-        user["staff_machine"] = l[4]
+        if len(l) == 11:
+            user["email"] = l[3]
+            i = 4
+        else:
+            i = 3
 
-        user["created"] = bool(int(l[5]))
-        user["is_group"] = bool(int(l[6]))
-
-        user["owner"] = user["group_owner" if user["is_group"] else "personal_owner"]
+        user["created"] = bool(int(l[i + 2]))
+        user["is_group"] = bool(int(l[i + 3]))
 
         yield user
 
