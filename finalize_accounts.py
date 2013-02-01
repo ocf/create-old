@@ -44,7 +44,10 @@ def _ldap_add(users, connection, shell = "/bin/bash"):
 
         # Enter it into LDAP
         ldif = ldap.modlist.addModlist(attrs)
-        connection.add_s(dn, ldif)
+        try:
+            connection.add_s(dn, ldif)
+        except ldap.ALREADY_EXISTS:
+            print "LDAP account already exists"
 
     # Invalidate the local cache so we can chown their files later
     check_call(["nscd", "-i", "passwd"])
