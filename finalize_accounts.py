@@ -5,6 +5,7 @@ Code to create the user accounts on the system.
 import base64
 from datetime import datetime
 from email.mime.text import MIMEText
+import errno
 from getpass import getuser
 from grp import getgrnam
 import os
@@ -56,21 +57,31 @@ def _homedir_add(user):
     home = home_dir(user["account_name"])
     http = http_dir(user["account_name"])
 
-    os.makedirs(home)
-    os.makedirs(http)
+    try:
+        os.makedirs(home)
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise e
+    else:
+        os.chown(home, getpwnam(user["account_name"]).pw_uid, getgrnam("ocf").gr_gid)
 
-    os.chown(home, getpwnam(user["account_name"]).pw_uid, getgrnam("ocf").gr_gid)
-    os.chown(http, getpwnam(user["account_name"]).pw_uid, getgrnam("ocf").gr_gid)
+        os.chmod(home, 0700)
 
-    os.chmod(home, 0700)
-    os.chmod(http, 0000)
+        for name in [".cshrc", ".bashrc", ".bash_profile", ".bash_logout"]:
+            shutil.copy2(os.path.join(os.path.dirname(__file__), "rc", name), home)
 
-    for name in [".cshrc", ".bashrc", ".bash_profile", ".bash_logout"]:
-        shutil.copy2(os.path.join(os.path.dirname(__file__), "rc", name), home)
+            dest = os.path.join(home, name)
+            os.chown(dest, getpwnam(user["account_name"]).pw_uid, getgrnam("ocf").gr_gid)
+            os.chmod(dest, 0600)
 
-        dest = os.path.join(home, name)
-        os.chown(dest, getpwnam(user["account_name"]).pw_uid, getgrnam("ocf").gr_gid)
-        os.chmod(dest, 0600)
+    try:
+        os.makedirs(http)
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise e
+    else:
+        os.chown(http, getpwnam(user["account_name"]).pw_uid, getgrnam("ocf").gr_gid)
+        os.chmod(http, 0000)
 
 def _forward_add(user):
     if user["forward"]:
