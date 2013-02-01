@@ -102,7 +102,7 @@ def _kerberos_add(users, options):
           decrypt_password(base64.b64decode(user["password"]), options.rsa_priv_key).decode()
 
         # Call the add command
-        kadmin.sendline("add --password={0} --use-defaults {1}".format(user_password, user["account_name"]))
+        kadmin.sendline("add --password=\"{0}\" --use-defaults {1}".format(user_password, user["account_name"]))
 
         i = 0
 
