@@ -106,7 +106,7 @@ def _kerberos_add(users, options):
 
         i = 0
 
-        while i == 0:
+        while i in [0, 2]:
             i = kadmin.expect(
                 ["{0}/admin@OCF.BERKELEY.EDU's Password:".format(options.admin_user),
                  "kadmin> ",
@@ -116,7 +116,6 @@ def _kerberos_add(users, options):
                 kadmin.sendline(options.admin_password)
             elif i == 2:
                 print kadmin.match.group(0)
-                kadmin.expect("kadmin> ")
 
     kadmin.sendline("exit")
     kadmin.expect(pexpect.EOF)
