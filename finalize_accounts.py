@@ -102,19 +102,23 @@ def _kerberos_add(users, options):
           decrypt_password(base64.b64decode(user["password"]), options.rsa_priv_key).decode()
 
         # Call the add command
-        kadmin.sendline("add --password=\"{0}\" --use-defaults {1}".format(user_password, user["account_name"]))
+        kadmin.sendline("add --use-defaults {1}".format(user["account_name"]))
 
         i = 0
 
-        while i in [0, 2]:
+        while i != 4:
             i = kadmin.expect(
                 ["{0}/admin@OCF.BERKELEY.EDU's Password:".format(options.admin_user),
-                 "kadmin> ",
-                 "kadmin: [^\n]*"])
+                 "{0}@OCF.BERKELEY.EDU's Password:".format(user["account_name"]),
+                 "Verifying - {0}@OCF.BERKELEY.EDU's Password:".format(user["account_name"]),
+                 "kadmin: [^\n]*",
+                 "kadmin> "])
 
             if i == 0:
                 kadmin.sendline(options.admin_password)
-            elif i == 2:
+            elif i in [1, 2]:
+                kadmin.sendline(user_password)
+            elif i == 3:
                 print kadmin.match.group(0)
 
     kadmin.sendline("exit")
