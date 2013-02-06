@@ -38,10 +38,14 @@ def _ldap_add(users, connection, shell = "/bin/bash"):
             "loginShell": [shell],
         }
 
-        if "calnet_uid" in user:
-            attrs["calNetuid"] = [str(user["calnet_uid"])]
-        elif not user["is_group"]:
-            raise KeyError("User does not have calnet uid set")
+        if not user["is_group"]:
+            if "calnet_uid" in user:
+                attrs["calNetuid"] = [str(user["university_uid"])]
+            else:
+                raise KeyError("User does not have calnet uid set")
+        else:
+            if "university_uid" in user:
+                attrs["oslgid"] = [str(user["university_uid"])]
 
         # Enter it into LDAP
         ldif = ldap.modlist.addModlist(attrs)
