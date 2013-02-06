@@ -41,7 +41,7 @@ def decrypt_password(password, priv_key):
 
 def get_users(stream, options):
     fields = ("account_name", "personal_owner", "group_owner", "email",
-              "forward", "is_group", "password", "calnet_uid")
+              "forward", "is_group", "password", "university_uid")
 
     for line in stream:
         line = line.strip()
@@ -80,7 +80,7 @@ def write_users(stream, users):
            str(int(user["forward"])),
            str(int(user["is_group"])),
            user["password"],
-           user["calnet_uid"]]
+           user["university_uid"]]
 
         stream.write(":".join(items) + "\n")
 

@@ -39,10 +39,10 @@ def _ldap_add(users, connection, shell = "/bin/bash"):
         }
 
         if not user["is_group"]:
-            if "calnet_uid" in user:
+            if "university_uid" in user:
                 attrs["calNetuid"] = [str(user["university_uid"])]
             else:
-                raise KeyError("User does not have calnet uid set")
+                raise KeyError("User does not have university uid set")
         else:
             if "university_uid" in user:
                 attrs["oslgid"] = [str(user["university_uid"])]
@@ -190,7 +190,7 @@ def finalize_accounts(users, options):
 
 def _log_created(user, options):
     with fancy_open(options.log_file, "a", lock = True) as f:
-        sections = [user["account_name"], user["owner"], user["calnet_uid"],
+        sections = [user["account_name"], user["owner"], user["university_uid"],
                     getuser(), gethostname(), 1, int(user["is_group"]), asctime()]
 
         f.write(":".join([str(i) for i in sections]) + "\n")

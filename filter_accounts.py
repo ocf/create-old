@@ -114,8 +114,8 @@ def _filter_owner_duplicates(accepted, needs_approval, rejected, options):
     return _filter_duplicates("owner", "Duplicate owner detected",
                               accepted, needs_approval, rejected, options, _fix_name)
 
-def _filter_calnet_uid_duplicates(accepted, needs_approval, rejected, options):
-    return _filter_duplicates("calnet_uid", "Duplicate CalNet UID detected",
+def _filter_university_uid_duplicates(accepted, needs_approval, rejected, options):
+    return _filter_duplicates("university_uid", "Duplicate CalNet UID detected",
                               accepted, needs_approval, rejected, options)
 
 def _filter_email_duplicates(accepted, needs_approval, rejected, options):
@@ -169,7 +169,7 @@ def _filter_registration_status(accepted, needs_approval, rejected, options):
             accepted_new += user,
             continue
 
-        search_filter = "uid={0}".format(user["calnet_uid"])
+        search_filter = "uid={0}".format(user["university_uid"])
 
         results = options.calnet_ldap.search_st(base_dn, ldap.SCOPE_SUBTREE,
                                                 search_filter, retrieve_attrs)
@@ -293,7 +293,7 @@ def filter_accounts(users, options):
 
     # Check for CalNet UID duplicates
     accepted, needs_approval, rejected = \
-      _filter_calnet_uid_duplicates(accepted, needs_approval, rejected, options)
+      _filter_university_uid_duplicates(accepted, needs_approval, rejected, options)
 
     # Check for email address duplicates
     accepted, needs_approval, rejected = \
