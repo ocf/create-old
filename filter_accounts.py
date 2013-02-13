@@ -234,8 +234,12 @@ def _send_filter_mail(accepted, needs_approval, rejected, options,
         body = "Account filtering run, results:\n\n"
 
         if accepted:
-            body += "Automatically accepted (Accounts will be created "
-            body += "next time this script runs):\n\n"
+            if options.interactive:
+                body += "Accepted"
+            else:
+                body += "Automatically accepted"
+
+            body += " (Accounts will be created next time this script runs):\n\n"
 
             for user in accepted:
                 body += "    {0} ({1})\n".format(user["account_name"], user["owner"])
