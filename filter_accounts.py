@@ -134,7 +134,11 @@ def _filter_ocf_duplicates(accepted, needs_approval, rejected, options):
     rejected_new = rejected
 
     for user in accepted:
-        search_filter = "calNetuid={0}".format(user["university_uid"])
+        if user["is_group"] and user["university_uid"] == 0:
+            continue
+
+        field = "oslgid" if user["is_group"] else "calNetuid"
+        search_filter = "{0}={1}".format(field, user["university_uid"])
         results = options.ocf_ldap.search_st(OCF_DN, ldap.SCOPE_SUBTREE,
                                              search_filter, retrieve_attrs)
 
