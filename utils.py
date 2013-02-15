@@ -119,6 +119,9 @@ def fancy_open(path, mode = "r", lock = False, delete = False, pass_missing = Fa
 
     Gives options to lock the file, delete after closing, and ignore a missing file.
     """
+    # On NFSv4, we can't lock read-only files
+    lock = lock and ("w" in mode or "a" in mode)
+
     try:
         f = open(path, mode)
     except IOError as e:
