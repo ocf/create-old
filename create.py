@@ -79,7 +79,7 @@ def _create_parser():
                         default = "/opt/create/private/private_pass.pem",
                         help = "Private key to decrypt user passwords")
     parser.add_argument("-c", "--calnetldap", dest = "calnet_ldap_url",
-                        default = "ldap://ldap.berkeley.edu",
+                        default = "ldap://nds.berkeley.edu",
                         help = "Url of CalNet's LDAP")
     parser.add_argument("-o", "--ocfldap", dest = "ocf_ldap_url",
                         default = "ldaps://ldap.ocf.berkeley.edu",
