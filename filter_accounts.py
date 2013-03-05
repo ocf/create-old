@@ -134,7 +134,7 @@ def _filter_ocf_duplicates(accepted, needs_approval, rejected, options):
     rejected_new = rejected
 
     for user in accepted:
-        if user["is_group"] and user["university_uid"] == 0:
+        if user["is_group"] and user["university_uid"] in ["0"]:
             continue
 
         field = "oslgid" if user["is_group"] else "calNetuid"
