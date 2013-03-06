@@ -151,13 +151,13 @@ def main(args):
 
         try:
             shutil.copy(options.mid_approve, dest)
-        except OSError as e:
+        except IOError as e:
             if e.errno != errno.ENOENT:
                 raise e
 
         try:
             shutil.copy(options.users_file, dest)
-        except OSError as e:
+        except IOError as e:
             if e.errno != errno.ENOENT:
                 raise e
 
