@@ -149,8 +149,17 @@ def main(args):
             if e.errno != errno.EEXIST:
                 raise e
 
-        shutil.copy(options.mid_approve, dest)
-        shutil.copy(options.users_file, dest)
+        try:
+            shutil.copy(options.mid_approve, dest)
+        except OSError as e:
+            if e.errno != errno.ENOENT:
+                raise e
+
+        try:
+            shutil.copy(options.users_file, dest)
+        except OSError as e:
+            if e.errno != errno.ENOENT:
+                raise e
 
     # Process all of the recently requested accounts
     with fancy_open(options.users_file, lock = True,
