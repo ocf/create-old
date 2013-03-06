@@ -12,6 +12,7 @@ User creation tool.
 # pycrypto
 
 import argparse
+import errno
 from getpass import getpass
 import os
 import pexpect
@@ -69,6 +70,9 @@ def _create_parser():
     parser.add_argument("-i", "--interactive", dest = "interactive",
                         action = "store_true",
                         help = "Ask stdin when staff approval is required")
+    parser.add_argument("-b", "--backup", dest = "backup",
+                        default = "/opt/create/private/backup/",
+                        help = "Directory to backup approved.user and mid_approved.users to")
     parser.add_argument("-n", "--no-email", dest = "email",
                         action = "store_false",
                         help = "Don't send account creation / rejection emails")
@@ -132,6 +136,18 @@ def main(args):
             finalize_accounts(get_users(f, options), options)
     finally:
         check_call(["kdestroy"])
+
+    if options.backup:
+        dest = os.path.join(options.backup, str(datetime.now()))
+
+        try:
+            os.makedirs(dest)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise e
+
+        shutil.copy(options.mid_approve, dest)
+        shutil.copy(options.users_file, dest)
 
     # Process all of the recently requested accounts
     with fancy_open(options.users_file, lock = True,
