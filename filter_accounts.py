@@ -25,10 +25,13 @@ def _staff_approval(user, error_str, accepted, needs_approval, rejected, options
 
     if ret in ["y", "yes"]:
         accepted.append(user)
+        return True
     elif ret in ["n", "no"]:
         rejected.append((user, error_str))
+        return False
     else:
         needs_approval.append((user, error_str))
+        return False
 
 def _filter_log_duplicates(accepted, needs_approval, rejected, options):
     """
@@ -220,11 +223,36 @@ def _filter_usernames(accepted, needs_approval, rejected, options):
     needs_approval_new = needs_approval
     rejected_new = rejected
 
+    # Some bad words, not comprehensive
+    expletives = ["fuck", "shit", "cunt", "crap", "bitch", "hell", "ass", "dick"]
+    restricted = ["ocf", "ucb", "cal"]
+
     for user in accepted:
-        message = "{0} is not an allowed username for {1}".format(user["account_name"],
-                                                                  user["owner"])
-        _staff_approval(user, message,
-                        accepted_new, needs_approval_new, rejected_new, options)
+        allowed = True
+
+        for word in expletives:
+            if word in user["account_name"]:
+                message = "{0} is an expletive not allowed in username: {1}".format(
+                    word, user["account_name"])
+
+                allowed = _staff_approval(user, message, accepted_new,
+                                          needs_approval_new, rejected_new,
+                                          options)
+
+                if not allowed:
+                    break
+        else:
+            for word in restricted:
+                if word in user["account_name"]:
+                    message = "{0} is a restricted word not allowed in username: {1}".format(
+                        word, user["account_name"])
+
+                    allowed = _staff_approval(user, message, accepted_new,
+                                              needs_approval_new, rejected_new,
+                                              options)
+
+                    if not allowed:
+                        break
 
     return accepted_new, needs_approval_new, rejected_new
 
@@ -315,8 +343,8 @@ def filter_accounts(users, options):
       _filter_registration_status(accepted, needs_approval, rejected, options)
 
     # Check requested usernames
-    # accepted, needs_approval, rejected = \
-    #   _filter_usernames(accepted, needs_approval, rejected, options)
+    accepted, needs_approval, rejected = \
+      _filter_usernames(accepted, needs_approval, rejected, options)
 
     # Write the accepted users to a staging file, allowing them marinate
     with fancy_open(options.mid_approve, "a", lock = True) as f:
