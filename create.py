@@ -88,7 +88,7 @@ def _create_parser():
     parser.add_argument("-o", "--ocfldap", dest = "ocf_ldap_url",
                         default = "ldaps://ldap.ocf.berkeley.edu",
                         help = "Url of OCF's LDAP")
-    parser.add_argument("-b", "--uidlowerbound", dest = "conflict_uid_lower_bound",
+    parser.add_argument("-d", "--uidlowerbound", dest = "conflict_uid_lower_bound",
                         default = 16000,
                         help = "Lower bound for OCF name collision detection")
 
