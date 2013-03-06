@@ -11,14 +11,17 @@ User creation tool.
 # python-ldap
 # pycrypto
 
+import os
+import sys
+sys.path.insert(0, os.path.join(os.path.split(__file__)[0], "lib", "python2.6", "site-packages"))
+
 import argparse
+from datetime import datetime
 import errno
 from getpass import getpass
-import os
 import pexpect
 import shutil
 from subprocess import check_call
-import sys
 
 from filter_accounts import filter_accounts
 from finalize_accounts import finalize_accounts
