@@ -254,6 +254,8 @@ def _filter_usernames(accepted, needs_approval, rejected, options):
                     if not allowed:
                         break
 
+        accepted_new += user,
+
     return accepted_new, needs_approval_new, rejected_new
 
 def _send_filter_mail(accepted, needs_approval, rejected, options,
