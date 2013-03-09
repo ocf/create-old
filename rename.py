@@ -20,9 +20,17 @@ def _dump_mysql(user):
     # Access the username with user["username"]
     pass
 
-def _dump_crontab(user):
+def _dump_tsunami_crontab(user):
     pass
 
+def _dump_crontabs(user):
+    # What about the other crontabs for staff users?
+    # death crontab, too?
+    return {"tsunami": _dump_tsunami_crontab(user),}
+
+def _dump_kerberos(user):
+    pass
+d
 def _dump_ldap(user):
     pass
 
@@ -69,9 +77,15 @@ def _add_mysql(user, new_username, dump):
     # Access the username with user["username"]
     pass
 
-def _add_crontab(user, new_username, dump):
+def _add_tsunami_crontab(user, new_username, dump):
     pass
 
+def _add_crontabs(user, new_username, dump):
+    _add_tsunami_crontab(user, new_username, dump["tsunami"])
+
+def _add_kerberos(user, new_username, dump):
+    pass
+d
 def _add_ldap(user, new_username, dump):
     pass
 
@@ -118,9 +132,15 @@ def _remove_mysql(user):
     # Access the username with user["username"]
     pass
 
-def _remove_crontab(user):
+def _remove_tsunami_crontab(user):
     pass
 
+def _remove_crontabs(user):
+    _remove_tsunami_crontab(user)
+
+def _remove_kerberos(user):
+    pass
+d
 def _remove_ldap(user):
     pass
 
