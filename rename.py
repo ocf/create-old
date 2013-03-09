@@ -8,6 +8,9 @@ import os
 import sys
 import types
 
+# See https://rt.ocf.berkeley.edu/Ticket/Display.html?id=638 for a list of
+# all the things to copy over
+
 # Can forgoe this now that OCF's postgres db is offline (Forgot this fact
 # while stubbing)
 def _dump_postgresl(user):
