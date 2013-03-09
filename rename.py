@@ -12,6 +12,15 @@ def _dump_postgresl(user):
 def _dump_crontab(user):
     pass
 
+def _dump_homedir(user):
+    # Probably want to copy their homedir to a tmp directory...or maybe
+    # we can just forgoe the dump/add paradigm for files
+    pass
+
+def _dump_webdir(user):
+    # See comments in _dump_homedir
+    pass
+
 def _add_postgresql(user, new_username, dump):
     """
     Re-add a user's postgresql database.
