@@ -2,9 +2,18 @@
 For the users who couldn't pick their account name right the first time.
 """
 
+# Can forgoe this now that OCF's postgres db is offline (Forgot this fact
+# while stubbing)
 def _dump_postgresl(user):
     """
     Dump a user's postgresql database into one object.
+    """
+    # Access the username with user["username"]
+    pass
+
+def _dump_mysql(user):
+    """
+    Dump a user's mysql database into one object.
     """
     # Access the username with user["username"]
     pass
