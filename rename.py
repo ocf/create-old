@@ -173,3 +173,8 @@ def _remove_homedir(user):
 def _remove_webdir(user):
     # See comments in _remove_homedir
     pass
+
+def _rename_user(user, new_username):
+    # It's incredibly temping to just dir() the module and iterate over
+    # all functions starting with _dump_, _add_, _remove_...
+    pass
