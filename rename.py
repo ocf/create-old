@@ -4,6 +4,10 @@ For the _users_ who couldn't pick their account name right the first time.
 NO GROUPS ALLOWED.
 """
 
+import os
+import sys
+import types
+
 # Can forgoe this now that OCF's postgres db is offline (Forgot this fact
 # while stubbing)
 def _dump_postgresl(user):
@@ -30,7 +34,7 @@ def _dump_crontabs(user):
 
 def _dump_kerberos(user):
     pass
-d
+
 def _dump_ldap(user):
     pass
 
@@ -85,7 +89,7 @@ def _add_crontabs(user, new_username, dump):
 
 def _add_kerberos(user, new_username, dump):
     pass
-d
+
 def _add_ldap(user, new_username, dump):
     pass
 
@@ -140,7 +144,7 @@ def _remove_crontabs(user):
 
 def _remove_kerberos(user):
     pass
-d
+
 def _remove_ldap(user):
     pass
 
@@ -177,4 +181,19 @@ def _remove_webdir(user):
 def _rename_user(user, new_username):
     # It's incredibly temping to just dir() the module and iterate over
     # all functions starting with _dump_, _add_, _remove_...
-    pass
+    for var, f in globals().items():
+        if var.startswith("_dump_") and isinstance(f, types.FunctionType):
+            print var
+
+    for var, f in globals().items():
+        if var.startswith("_add_") and isinstance(f, types.FunctionType):
+            print var
+
+    for var, f in globals().items():
+        if var.startswith("_remove_") and isinstance(f, types.FunctionType):
+            print var
+
+    return
+
+if __name__ == "__main__":
+    print _rename_user(None, None)
