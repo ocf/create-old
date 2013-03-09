@@ -111,5 +111,45 @@ def _remove_postgresql(user):
     """
     pass
 
+def _remove_mysql(user):
+    """
+    Removes a user's mysql tables from the OCF database.
+    """
+    # Access the username with user["username"]
+    pass
+
 def _remove_crontab(user):
+    pass
+
+def _remove_ldap(user):
+    pass
+
+def _remove_ldap_groups(user):
+    pass
+
+def _remove_pykota(user):
+    pass
+
+def _remove_rt(user):
+    # We care enough to support staff?
+    pass
+
+def _remove_wiki(user):
+    # We care enough to support staff?
+    pass
+
+def _remove_mail(user):
+    # Is this not all in the homedir?
+    pass
+
+def _remove_user_info(user):
+    pass
+
+def _remove_homedir(user):
+    # Probably want to copy their homedir to a tmp directory...or maybe
+    # we can just forgoe the dump/add paradigm for files
+    pass
+
+def _remove_webdir(user):
+    # See comments in _remove_homedir
     pass
