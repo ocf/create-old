@@ -21,6 +21,16 @@ def _dump_mysql(user):
 def _dump_crontab(user):
     pass
 
+def _dump_ldap(user):
+    pass
+
+def _dump_pykota(user):
+    pass
+
+def _dump_mail(user):
+    # Is this not all in the homedir?
+    pass
+
 def _dump_homedir(user):
     # Probably want to copy their homedir to a tmp directory...or maybe
     # we can just forgoe the dump/add paradigm for files
