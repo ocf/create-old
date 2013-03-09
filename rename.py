@@ -1,5 +1,7 @@
 """
-For the users who couldn't pick their account name right the first time.
+For the _users_ who couldn't pick their account name right the first time.
+
+NO GROUPS ALLOWED.
 """
 
 # Can forgoe this now that OCF's postgres db is offline (Forgot this fact
@@ -24,11 +26,25 @@ def _dump_crontab(user):
 def _dump_ldap(user):
     pass
 
+def _dump_ldap_groups(user):
+    pass
+
 def _dump_pykota(user):
+    pass
+
+def _dump_rt(user):
+    # We care enough to support staff?
+    pass
+
+def _dump_wiki(user):
+    # We care enough to support staff?
     pass
 
 def _dump_mail(user):
     # Is this not all in the homedir?
+    pass
+
+def _dump_user_info(user):
     pass
 
 def _dump_homedir(user):
