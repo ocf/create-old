@@ -11,7 +11,7 @@ import types
 # See https://rt.ocf.berkeley.edu/Ticket/Display.html?id=638 for a list of
 # all the things to copy over
 
-# Can forgoe this now that OCF's postgres db is offline (Forgot this fact
+# Can forgo this now that OCF's postgres db is offline (Forgot this fact
 # while stubbing)
 def _dump_postgresl(user):
     """
@@ -64,7 +64,7 @@ def _dump_user_info(user):
 
 def _dump_homedir(user):
     # Probably want to copy their homedir to a tmp directory...or maybe
-    # we can just forgoe the dump/add paradigm for files
+    # we can just forgo the dump/add paradigm for files
     pass
 
 def _dump_webdir(user):
@@ -119,7 +119,7 @@ def _add_user_info(user, new_username, dump):
 
 def _add_homedir(user, new_username, dump):
     # Probably want to copy their homedir to a tmp directory...or maybe
-    # we can just forgoe the dump/add paradigm for files
+    # we can just forgo the dump/add paradigm for files
     pass
 
 def _add_webdir(user, new_username, dump):
@@ -174,7 +174,7 @@ def _remove_user_info(user):
 
 def _remove_homedir(user):
     # Probably want to copy their homedir to a tmp directory...or maybe
-    # we can just forgoe the dump/add paradigm for files
+    # we can just forgo the dump/add paradigm for files
     pass
 
 def _remove_webdir(user):
