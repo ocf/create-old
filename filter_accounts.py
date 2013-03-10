@@ -230,10 +230,10 @@ def _filter_restricted_names(accepted, needs_approval, rejected, options):
         }
 
     for user in accepted:
-        for type, word in bad.items():
+        for restricted_type, word in bad.items():
             if word in user["account_name"]:
                 message = "{0} is {1} not allowed in username: {2}".format(
-                    word, type, user["account_name"])
+                    word, restricted_type, user["account_name"])
 
                 allowed = _staff_approval(user, message, accepted_new,
                                           needs_approval_new, rejected_new,
