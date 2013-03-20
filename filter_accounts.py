@@ -246,6 +246,56 @@ def _filter_restricted_names(accepted, needs_approval, rejected, options):
 
     return accepted_new, needs_approval_new, rejected_new
 
+def _filter_real_names(accepted, needs_approval, rejected, options):
+
+    def similarity(realname, username):
+        """Find the number of additions needed when turning realname into username.
+
+        Find the minimum number of replacements and insertions (deletions are not counted)
+        that turn any of the permutations of words in realname into username, using the
+        built-in difflib.SequenceMatcher class. SequenceMatcher finds the longest
+        continguous matching subsequence and continues this process recursively.
+
+        This is usually, but not always, the edit distance with zero deletion cost.
+        Long realnames combined with very short matching subsequences (such as initials)
+        may require more additions with SequenceMatcher than their edit distances.
+
+        For most usernames based on real names, this number is 0.
+
+        """
+        distances = []
+        for permutation in permutations(findall('\w+', realname)):
+            permutation = ''.join(permutation).lower()
+            s = SequenceMatcher(None, permutation, username)
+            edits = s.get_opcodes()
+            distance = 0
+            for edit in edits:
+                if edit[0] in ['replace', 'insert']:
+                    distance += edit[4] - edit[3]
+            distances.append(distance)
+        distances.sort()
+        return distances[0]
+
+    accepted_new = []
+    needs_approval_new = needs_approval
+    rejected_new = rejected
+
+    threshold = 0
+    for user in accepted:
+        if similarity(user["owner"], user["account_name"]) > threshold:
+                message = "Username {0} might not be based on real name {1}".format(
+                          user["account_name"], user["owner"])
+
+                allowed = _staff_approval(user, message, accepted_new,
+                                          needs_approval_new, rejected_new,
+                                          options)
+            if not allowed:
+                break
+        else:
+            accepted_new += user,
+
+    return accepted_new, needs_approval_new, rejected_new
+
 def _send_filter_mail(accepted, needs_approval, rejected, options,
                       me = "OCF staff <help@ocf.berkeley.edu>",
                       staff = "staff@ocf.berkeley.edu"):
@@ -332,9 +382,13 @@ def filter_accounts(users, options):
     accepted, needs_approval, rejected = \
       _filter_registration_status(accepted, needs_approval, rejected, options)
 
-    # Check requested usernames
+    # Check for expletives and restrictions in requested usernames
     accepted, needs_approval, rejected = \
       _filter_restricted_names(accepted, needs_approval, rejected, options)
+
+    # Check that requested username is based on real name
+    accepted, needs_approval, rejected = \
+      _filter_real_names(accepted, needs_approval, rejected, options)
 
     # Write the accepted users to a staging file, allowing them marinate
     with fancy_open(options.mid_approve, "a", lock = True) as f:
