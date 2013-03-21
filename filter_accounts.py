@@ -8,6 +8,9 @@ import ldap
 import os
 from subprocess import PIPE, Popen
 import sys
+from re import findall
+from difflib import SequenceMatcher
+from itertools import permutations
 
 from ocf import OCF_DN
 from utils import get_log_entries, fancy_open, write_users
