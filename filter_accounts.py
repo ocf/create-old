@@ -304,9 +304,6 @@ def _filter_real_names(accepted, needs_approval, rejected, options):
 
         accepted_new += user,
 
-    print "real name"
-    print accepted
-    print accepted_new
     return accepted_new, needs_approval_new, rejected_new
 
 def _send_filter_mail(accepted, needs_approval, rejected, options,
