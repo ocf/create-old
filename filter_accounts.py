@@ -253,9 +253,6 @@ def _filter_restricted_names(accepted, needs_approval, rejected, options):
         else:
             accepted_new += user,
 
-    print "bad words"
-    print accepted
-    print accepted_new
     return accepted_new, needs_approval_new, rejected_new
 
 def _filter_real_names(accepted, needs_approval, rejected, options):
@@ -304,7 +301,7 @@ def _filter_real_names(accepted, needs_approval, rejected, options):
 
             if not allowed:
                 break
-    else:
+
         accepted_new += user,
 
     print "real name"
