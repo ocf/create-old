@@ -18,7 +18,7 @@ from utils import get_log_entries, fancy_open, write_users
 def _staff_approval(user, error_str, accepted, needs_approval, rejected, options):
     if not options.interactive:
         needs_approval.append((user, error_str))
-        return
+        return False
 
     prompt = "{0}\n{1} ({2})\n"
     prompt += "Approve this account? "
@@ -44,8 +44,8 @@ def _filter_log_duplicates(accepted, needs_approval, rejected, options):
     """
 
     accepted_new = []
-    needs_approval_new = needs_approval
-    rejected_new = rejected
+    needs_approval_new = list(needs_approval)
+    rejected_new = list(rejected)
 
     with open(options.log_file) as f:
         log_users = get_log_entries(f)
@@ -72,8 +72,8 @@ def _filter_log_duplicates(accepted, needs_approval, rejected, options):
 def _filter_duplicates(key, error_str, accepted, needs_approval, rejected, options,
                        unique_function = lambda x: x):
     accepted_new = []
-    needs_approval_new = needs_approval
-    rejected_new = rejected
+    needs_approval_new = list(needs_approval)
+    rejected_new = list(rejected)
 
     unique_values = dict()
 
@@ -136,8 +136,8 @@ def _filter_ocf_duplicates(accepted, needs_approval, rejected, options):
     retrieve_attrs = ["uidNumber", "cn"]
 
     accepted_new = []
-    needs_approval_new = needs_approval
-    rejected_new = rejected
+    needs_approval_new = list(needs_approval)
+    rejected_new = list(rejected)
 
     for user in accepted:
         if user["is_group"] and user["university_uid"] in ["0"]:
@@ -169,8 +169,8 @@ def _filter_registration_status(accepted, needs_approval, rejected, options):
     retrieve_attrs = ["berkeleyEduAffiliations", "displayName"]
 
     accepted_new = []
-    needs_approval_new = needs_approval
-    rejected_new = rejected
+    needs_approval_new = list(needs_approval)
+    rejected_new = list(rejected)
 
     for user in accepted:
         # Skip CalNet registration check for group accounts
@@ -223,8 +223,8 @@ def _filter_registration_status(accepted, needs_approval, rejected, options):
 
 def _filter_restricted_names(accepted, needs_approval, rejected, options):
     accepted_new = []
-    needs_approval_new = needs_approval
-    rejected_new = rejected
+    needs_approval_new = list(needs_approval)
+    rejected_new = list(rejected)
 
     # Some bad words, not comprehensive
     bad = {
@@ -285,8 +285,8 @@ def _filter_real_names(accepted, needs_approval, rejected, options):
         return sorted(distances)[0]
 
     accepted_new = []
-    needs_approval_new = needs_approval
-    rejected_new = rejected
+    needs_approval_new = list(needs_approval)
+    rejected_new = list(rejected)
 
     threshold = 1
 
@@ -300,7 +300,7 @@ def _filter_real_names(accepted, needs_approval, rejected, options):
                                       options)
 
             if not allowed:
-                break
+                continue
 
         accepted_new += user,
 
