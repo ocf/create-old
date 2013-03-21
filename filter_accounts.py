@@ -234,8 +234,11 @@ def _filter_restricted_names(accepted, needs_approval, rejected, options):
 
     for user in accepted:
         allowed = True
+
         for restricted_type, words in bad.items():
+            print words
             for word in words:
+                print word, allowed
                 if word in user["account_name"]:
                     message = "{0} is {1} not allowed in username: {2}".format(
                         word, restricted_type, user["account_name"])
@@ -245,11 +248,14 @@ def _filter_restricted_names(accepted, needs_approval, rejected, options):
                                               options)
 
                     if not allowed:
+                        print "nope1"
                         break
 
             if not allowed:
+                print "nope2"
                 break
         else:
+            print "adding", user["account_name"]
             accepted_new += user,
 
     return accepted_new, needs_approval_new, rejected_new
