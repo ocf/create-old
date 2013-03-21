@@ -236,9 +236,7 @@ def _filter_restricted_names(accepted, needs_approval, rejected, options):
         allowed = True
 
         for restricted_type, words in bad.items():
-            print words
             for word in words:
-                print word, allowed
                 if word in user["account_name"]:
                     message = "{0} is {1} not allowed in username: {2}".format(
                         word, restricted_type, user["account_name"])
@@ -248,16 +246,16 @@ def _filter_restricted_names(accepted, needs_approval, rejected, options):
                                               options)
 
                     if not allowed:
-                        print "nope1"
                         break
 
             if not allowed:
-                print "nope2"
                 break
         else:
-            print "adding", user["account_name"]
             accepted_new += user,
 
+    print "bad words"
+    print accepted
+    print accepted_new
     return accepted_new, needs_approval_new, rejected_new
 
 def _filter_real_names(accepted, needs_approval, rejected, options):
@@ -309,6 +307,9 @@ def _filter_real_names(accepted, needs_approval, rejected, options):
     else:
         accepted_new += user,
 
+    print "real name"
+    print accepted
+    print accepted_new
     return accepted_new, needs_approval_new, rejected_new
 
 def _send_filter_mail(accepted, needs_approval, rejected, options,
