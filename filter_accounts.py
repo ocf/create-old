@@ -233,17 +233,22 @@ def _filter_restricted_names(accepted, needs_approval, rejected, options):
         }
 
     for user in accepted:
-        for restricted_type, word in bad.items():
-            if word in user["account_name"]:
-                message = "{0} is {1} not allowed in username: {2}".format(
-                    word, restricted_type, user["account_name"])
+        allowed = True
+        for restricted_type, words in bad.items():
+            for word in words:
+                if word in user["account_name"]:
+                    message = "{0} is {1} not allowed in username: {2}".format(
+                        word, restricted_type, user["account_name"])
 
-                allowed = _staff_approval(user, message, accepted_new,
-                                          needs_approval_new, rejected_new,
-                                          options)
+                    allowed = _staff_approval(user, message, accepted_new,
+                                              needs_approval_new, rejected_new,
+                                              options)
 
-                if not allowed:
-                    break
+                    if not allowed:
+                        break
+
+            if not allowed:
+                break
         else:
             accepted_new += user,
 
