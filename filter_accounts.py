@@ -264,38 +264,39 @@ def _filter_real_names(accepted, needs_approval, rejected, options):
         may require more additions with SequenceMatcher than their edit distances.
 
         For most usernames based on real names, this number is 0.
-
         """
         distances = []
-        for permutation in permutations(findall('\w+', realname)):
-            permutation = ''.join(permutation).lower()
+
+        for permutation in permutations(findall("\w+", realname)):
+            permutation = "".join(permutation).lower()
             s = SequenceMatcher(None, permutation, username)
             edits = s.get_opcodes()
-            distance = 0
-            for edit in edits:
-                if edit[0] in ['replace', 'insert']:
-                    distance += edit[4] - edit[3]
+            distance = sum(edit[4] - edit[3]
+                           for edit in edits
+                           if edit[0] in ["replace", "insert"])
             distances.append(distance)
-        distances.sort()
-        return distances[0]
+
+        return sorted(distances)[0]
 
     accepted_new = []
     needs_approval_new = needs_approval
     rejected_new = rejected
 
-    threshold = 0
+    threshold = 1
+
     for user in accepted:
         if similarity(user["owner"], user["account_name"]) > threshold:
-                message = "Username {0} might not be based on real name {1}".format(
-                          user["account_name"], user["owner"])
+            message = "Username {0} not based on real name {1}".format(
+                user["account_name"], user["owner"])
 
-                allowed = _staff_approval(user, message, accepted_new,
-                                          needs_approval_new, rejected_new,
-                                          options)
+            allowed = _staff_approval(user, message, accepted_new,
+                                      needs_approval_new, rejected_new,
+                                      options)
+
             if not allowed:
                 break
-        else:
-            accepted_new += user,
+    else:
+        accepted_new += user,
 
     return accepted_new, needs_approval_new, rejected_new
 
