@@ -131,7 +131,7 @@ def _kerberos_add(users, options):
 def _send_finalize_emails(users, options,
                           me = "OCF Staff <staff@ocf.berkeley.edu>",
                           reply_to = "help@ocf.berkeley.edu",
-                          staff = "wheel@ocf.berkeley.edu"):
+                          staff = "sm@ocf.berkeley.edu"):
     """
     Notify users and staff that accounts were created.
     """

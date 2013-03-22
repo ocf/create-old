@@ -308,7 +308,7 @@ def _filter_real_names(accepted, needs_approval, rejected, options):
 
 def _send_filter_mail(accepted, needs_approval, rejected, options,
                       me = "OCF Staff <staff@ocf.berkeley.edu>",
-                      staff = "wheel@ocf.berkeley.edu"):
+                      staff = "sm@ocf.berkeley.edu"):
     if (accepted or needs_approval or rejected) and options.email:
         body = "Account filtering run, results:\n\n"
 
