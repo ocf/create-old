@@ -295,14 +295,11 @@ def _filter_real_names(accepted, needs_approval, rejected, options):
             message = "Username {0} not based on real name {1}".format(
                 user["account_name"], user["owner"])
 
-            allowed = _staff_approval(user, message, accepted_new,
-                                      needs_approval_new, rejected_new,
-                                      options)
-
-            if not allowed:
-                continue
-
-        accepted_new += user,
+            _staff_approval(user, message, accepted_new,
+                            needs_approval_new, rejected_new,
+                            options)
+        else:
+            accepted_new += user,
 
     return accepted_new, needs_approval_new, rejected_new
 
