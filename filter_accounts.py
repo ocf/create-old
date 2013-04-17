@@ -199,8 +199,8 @@ def _filter_registration_status(accepted, needs_approval, rejected, options):
                                   "AFFILIATE-TYPE-TEMP AGENCY",
                                   "AFFILIATE-TYPE-COMMITTEE MEMBER",
                                   "AFFILIATE-TYPE-STAFF OF UC/OP/AFFILIATED ORGS",
-                                  "AFFILIATE-TYPE-CONTRACTOR"
-                                  "AFFILIATE-TYPE-CONCURR ENROLL"])
+                                  "AFFILIATE-TYPE-CONTRACTOR",
+                                  "AFFILIATE-TYPE-CONCURR ENROLL",])
 
         if ((("EMPLOYEE-TYPE-ACADEMIC" in affiliation or
               "EMPLOYEE-TYPE-STAFF" in affiliation) and
