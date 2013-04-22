@@ -11,6 +11,8 @@ User creation tool.
 # python-ldap
 # pycrypto
 
+from __future__ import with_statement, print_function
+
 import os
 import sys
 sys.path.insert(0, os.path.join(os.path.split(__file__)[0], "lib", "python2.6", "site-packages"))
@@ -19,13 +21,14 @@ import argparse
 from datetime import datetime
 import errno
 from getpass import getpass
-import pexpect
+from grp import getgrnam
+from pwd import getpwnam
 import shutil
 from subprocess import check_call
 
 from filter_accounts import filter_accounts
 from finalize_accounts import finalize_accounts
-from utils import get_users, fancy_open, write_users
+from utils import get_users, fancy_open, write_users, kinit
 
 import ldap
 import ldap.sasl
@@ -42,7 +45,7 @@ def _email_problems():
 
 def _finish_account_creation(src):
     now = datetime.now().strftime("%Y-%m-%d")
-    directory, name = os.path.split(source)
+    directory, name = os.path.split(src)
 
     dest = os.path.join(directory, "..", "oldapprovedusers", "{0}.{1}".format(name, now))
     shutil.move(src, dest)
@@ -116,22 +119,12 @@ def main(args):
     options.ocf_ldap.protocol_version = ldap.VERSION3
 
     # Autheticate our ldap session using gssapi
-    options.admin_password = \
+    admin_password = \
       getpass("{0}/admin@OCF.BERKELEY.EDU's Password: ".format(options.admin_user))
 
     # Process the users in the mid stage of approval first
     try:
-        # XXX: Use python-kerberos for this?
-        kinit = pexpect.spawn("kinit {0}/admin".format(options.admin_user))
-        kinit.expect("{0}/admin@OCF.BERKELEY.EDU's Password: ".format(options.admin_user))
-        kinit.sendline(options.admin_password)
-        kinit.expect("\n")
-
-        if kinit.expect(["kinit: Password incorrect", pexpect.EOF]) == 0:
-            print >>sys.stderr, \
-              "Incorrect password for {0}/admin".format(options.admin_user)
-            sys.exit()
-
+        kinit("{0}/admin".format(options.admin_user), admin_password)
         options.ocf_ldap.sasl_interactive_bind_s("", ldap.sasl.gssapi(""))
 
         with fancy_open(options.mid_approve, lock = True,

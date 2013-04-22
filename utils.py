@@ -2,15 +2,14 @@
 Utility functions for account creation.
 """
 
-import argparse
+from __future__ import with_statement, print_function
+
 from contextlib import contextmanager
 import errno
 import fcntl
 import os
+import pexpect
 import sys
-
-# LDAP
-import ldap
 
 # Password decryption
 from Crypto.Cipher import PKCS1_OAEP
@@ -144,3 +143,15 @@ def fancy_open(path, mode = "r", lock = False, delete = False, pass_missing = Fa
             # Race condition here? Can we remove a file before we unlock it?
             if delete:
                 os.remove(path)
+
+def kinit(principal, password, domain = "OCF.BERKELEY.EDU"):
+    # XXX: Use python-kerberos for this?
+    process = pexpect.spawn("kinit {0}".format(principal))
+    process.expect("{0}@{1}'s Password: ".format(principal, domain))
+    process.sendline(password)
+    process.expect("\n")
+
+    if process.expect(["kinit: Password incorrect", pexpect.EOF]) == 0:
+        print("Incorrect password for {0}".format(principal),
+              file = sys.stderr)
+        sys.exit()

@@ -8,68 +8,21 @@ are really angels freeing you from the earth..." -- Jacob's Ladder
 User deletion tool.
 """
 
+from __future__ import with_statement, print_function
+
 import argparse
 from datetime import datetime
 from email.mime.text import MIMEText
-import errno
 from getpass import getpass
 import os
-import pexpect
-import shutil
 from subprocess import Popen, PIPE, check_call
 import sys
-
-from ocf import home_dir, http_dir, OCF_DN
 
 import ldap
 import ldap.sasl
 
-def _kerberos_rm(users, options):
-    kadmin = pexpect.spawn("kadmin", ["-p", "{0}/admin".format(options.admin_user)])
-    kadmin.expect("kadmin> ")
-
-    for user in users:
-        kadmin.sendline("del {0}".format(user["account_name"]))
-
-        i = 0
-
-        while i == 0:
-            i = kadmin.expect(
-                ["{0}/admin@OCF.BERKELEY.EDU's Password:".format(options.admin_user),
-                 "kadmin> ",
-                 "kadmin: [^\n]*"])
-
-            if i == 0:
-                kadmin.sendline(options.admin_password)
-            elif i == 2:
-                print kadmin.match.group(0)
-                kadmin.expect("kadmin> ")
-
-    kadmin.sendline("exit")
-    kadmin.expect(pexpect.EOF)
-
-def _ldap_rm(users, options):
-    for user in users:
-        dn = "uid={0},{1}".format(user["account_name"], OCF_DN)
-
-        try:
-            options.ocf_ldap.delete_s(dn)
-        except ldap.NO_SUCH_OBJECT:
-            print "{0} does not exist in ldap".format(dn)
-
-def _rm_user_dirs(users):
-    for user in users:
-        try:
-            shutil.rmtree(home_dir(user["account_name"]))
-        except OSError as e:
-            if e.errno != errno.ENOENT:
-                raise e
-
-        try:
-            shutil.rmtree(http_dir(user["account_name"]))
-        except OSError as e:
-            if e.errno != errno.ENOENT:
-                raise e
+from rm_accounts import rm_all
+from utils import kinit
 
 def _send_rm_emails(users, options,
                     me = "OCF staff <staff@ocf.berkeley.edu>",
@@ -92,13 +45,6 @@ def _send_rm_emails(users, options,
 
         s = Popen(["sendmail", "-t"], stdin = PIPE)
         s.communicate(msg.as_string())
-
-def rm_users(users, options):
-    _rm_user_dirs(users)
-    _ldap_rm(users, options)
-    _kerberos_rm(users, options)
-
-    _send_rm_emails(users, options)
 
 def _delete_parser():
     parser = argparse.ArgumentParser(description = "Delete user accounts.")
@@ -127,28 +73,19 @@ def main(args):
     options.ocf_ldap.simple_bind_s("", "")
     options.ocf_ldap.protocol_version = ldap.VERSION3
 
-    options.accounts = [{"account_name": user} for user in options.accounts]
+    accounts = [{"account_name": user} for user in options.accounts]
 
     # Autheticate our ldap session using gssapi
-    options.admin_password = \
+    admin_password = \
       getpass("{0}/admin@OCF.BERKELEY.EDU's Password: ".format(options.admin_user))
 
     # Process the users in the mid stage of approval first
     try:
-        # XXX: Use python-kerberos for this?
-        kinit = pexpect.spawn("kinit {0}/admin".format(options.admin_user))
-        kinit.expect("{0}/admin@OCF.BERKELEY.EDU's Password: ".format(options.admin_user))
-        kinit.sendline(options.admin_password)
-        kinit.expect("\n")
-
-        if kinit.expect(["kinit: Password incorrect", pexpect.EOF]) == 0:
-            print >>sys.stderr, \
-              "Incorrect password for {0}/admin".format(options.admin_user)
-            sys.exit()
-
+        kinit("{0}/admin".format(options.admin_user), admin_password)
         options.ocf_ldap.sasl_interactive_bind_s("", ldap.sasl.gssapi(""))
 
-        rm_users(options.accounts, options)
+        rm_all(accounts, options)
+        _send_rm_emails(accounts, options)
     finally:
         check_call(["kdestroy"])
 

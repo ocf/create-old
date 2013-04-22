@@ -2,7 +2,14 @@
 
 """
 
+from __future__ import with_statement, print_function
+
+from getpass import getuser
 import os
+from socket import gethostname
+from time import asctime
+
+from utils import fancy_open
 
 OCF_DN = "ou=People,dc=OCF,dc=Berkeley,dc=EDU"
 
@@ -19,3 +26,11 @@ def http_dir(account_name):
     """
     return os.path.sep + \
       os.path.join("services", "http", "users", account_name[0], account_name)
+
+def log_creation(user, options):
+    with fancy_open(options.log_file, "a", lock = True) as f:
+        sections = [user["account_name"], user["owner"], user["university_uid"],
+                    getuser(), gethostname(), 1, int(user["is_group"]),
+                    asctime()]
+
+        f.write(":".join([str(i) for i in sections]) + "\n")

@@ -3,14 +3,15 @@ Module to filter user accounts into good users, problematic users, and users tha
 require manual staff approval.
 """
 
+from __future__ import with_statement, print_function
+
 from email.mime.text import MIMEText
-import ldap
-import os
 from subprocess import PIPE, Popen
-import sys
 from re import findall
 from difflib import SequenceMatcher
 from itertools import permutations
+
+import ldap
 
 from ocf import OCF_DN
 from utils import get_log_entries, fancy_open, write_users
