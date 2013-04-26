@@ -41,7 +41,8 @@ def _send_finalize_emails(users, options,
             s.communicate(msg.as_string())
 
         # Notify staff of all the created accounts
-        body = "Accounts created on {0}:\n".format(datetime.now())
+        user = os.environ.get("SUDO_USER", os.environ.get("USER", ""))
+        body = "Accounts created on {0} by {1}:\n".format(datetime.now(), user)
 
         for user in users:
             body += "{0}: {1}\n".format(user["account_name"], user["owner"])
