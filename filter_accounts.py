@@ -1,6 +1,6 @@
 """
-Module to filter user accounts into good users, problematic users, and users that
-require manual staff approval.
+Module to filter user accounts into good users, problematic users, and users
+that require manual staff approval.
 """
 
 from __future__ import with_statement, print_function
@@ -308,7 +308,8 @@ def _send_filter_mail(accepted, needs_approval, rejected, options,
                       me = "OCF Staff <staff@ocf.berkeley.edu>",
                       staff = "sm@ocf.berkeley.edu"):
     if (accepted or needs_approval or rejected) and options.email:
-        body = "Account filtering run, results:\n\n"
+        user = os.environ.get("SUDO_USER", os.environ.get("USER", ""))
+        body = "Account filtering run by {0}, results:\n\n".format(user)
 
         if accepted:
             if options.interactive:
