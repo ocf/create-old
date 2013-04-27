@@ -5,6 +5,7 @@ that require manual staff approval.
 
 from __future__ import with_statement, print_function
 
+import os
 from email.mime.text import MIMEText
 from subprocess import PIPE, Popen
 from re import findall
