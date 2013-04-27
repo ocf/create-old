@@ -119,12 +119,12 @@ def main(args):
     options.ocf_ldap.protocol_version = ldap.VERSION3
 
     # Autheticate our ldap session using gssapi
-    admin_password = \
+    options.admin_password = \
       getpass("{0}/admin@OCF.BERKELEY.EDU's Password: ".format(options.admin_user))
 
     # Process the users in the mid stage of approval first
     try:
-        kinit("{0}/admin".format(options.admin_user), admin_password)
+        kinit("{0}/admin".format(options.admin_user), options.admin_password)
         options.ocf_ldap.sasl_interactive_bind_s("", ldap.sasl.gssapi(""))
 
         with fancy_open(options.mid_approve, lock = True,
