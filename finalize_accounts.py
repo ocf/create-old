@@ -11,8 +11,6 @@ from subprocess import Popen, PIPE
 
 import ldap
 
-from ocf import home_dir, http_dir, OCF_DN
-from utils import fancy_open
 from add_accounts import add_all
 
 ACCOUNT_CREATED_LETTER = \
