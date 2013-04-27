@@ -11,6 +11,7 @@ from subprocess import Popen, PIPE
 
 import ldap
 
+from ocf import OCF_DN
 from add_accounts import add_all
 
 ACCOUNT_CREATED_LETTER = \
