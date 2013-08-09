@@ -91,7 +91,7 @@ def _filter_duplicates(key, error_str, accepted, needs_approval, rejected, optio
         value = unique_function(user[key])
 
         if value in unique_values:
-            if not value:
+            if not value or value in [0]:
                 unique_values[value].append(user)
                 continue
 
