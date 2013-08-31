@@ -230,28 +230,25 @@ def _filter_restricted_names(accepted, needs_approval, rejected, options):
 
     # Some bad words, not comprehensive
     bad = {
-        "an expletive": ["fuck", "shit", "cunt", "crap", "bitch", "hell", "ass", "dick"],
-        "a restricted word": ["ocf", "ucb", "cal"],
+        "expletive": ["fuck", "shit", "cunt", "crap", "bitch", "hell", "ass", "dick"],
+        "restricted": ["ocf", "ucb", "cal"],
         }
 
     for user in accepted:
-        allowed = True
+        if any(word in user["account_name"]
+               for restricted_type, words in bad.items()
+               for word in words):
+            bad_list = ", ".join("{0} ({1})".format(word, restricted_type)
+                                 for restricted_type, words in bad.items()
+                                 for word in words
+                                 if word in user["account_name"])
 
-        for restricted_type, words in bad.items():
-            for word in words:
-                if word in user["account_name"]:
-                    message = "{0} is {1} not allowed in username: {2}".format(
-                        word, restricted_type, user["account_name"])
+            message = "{0} not allowed in username: {1}".format(
+                bad_list, user["account_name"])
 
-                    allowed = _staff_approval(user, message, accepted_new,
-                                              needs_approval_new, rejected_new,
-                                              options)
-
-                    if not allowed:
-                        break
-
-            if not allowed:
-                break
+            _staff_approval(user, message, accepted_new,
+                            needs_approval_new, rejected_new,
+                            options)
         else:
             accepted_new += user,
 
