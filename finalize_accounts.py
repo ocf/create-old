@@ -18,8 +18,7 @@ ACCOUNT_CREATED_LETTER = \
   os.path.join(os.path.dirname(__file__), "txt", "acct.created.letter")
 
 def _send_finalize_emails(users, options,
-                          me = "OCF Staff <staff@ocf.berkeley.edu>",
-                          reply_to = "help@ocf.berkeley.edu",
+                          me = "OCF Staff <help@ocf.berkeley.edu>",
                           staff = "sm@ocf.berkeley.edu"):
     """
     Notify users and staff that accounts were created.
@@ -33,7 +32,6 @@ def _send_finalize_emails(users, options,
             msg = MIMEText(text)
             msg["Subject"] = "OCF account created"
             msg["From"] = me
-            msg["Reply-To"] = reply_to
             msg["To"] = user["email"]
 
             s = Popen(["sendmail", "-t"], stdin = PIPE)

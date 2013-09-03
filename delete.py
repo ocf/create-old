@@ -25,8 +25,8 @@ from rm_accounts import rm_all
 from utils import kinit
 
 def _send_rm_emails(users, options,
-                    me = "OCF staff <staff@ocf.berkeley.edu>",
-                    staff = "staff@ocf.berkeley.edu"):
+                    me = "OCF Site Manager <sm@ocf.berkeley.edu>",
+                    staff = "sm@ocf.berkeley.edu"):
     """
     Notify users and staff that accounts were deleted.
     """
