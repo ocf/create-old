@@ -146,7 +146,7 @@ def _filter_ocf_duplicates(accepted, needs_approval, rejected, options):
             accepted_new += user,
             continue
 
-        field = "oslgid" if user["is_group"] else "calNetuid"
+        field = "callinkOid" if user["is_group"] else "calnetUid"
         search_filter = "{0}={1}".format(field, user["university_uid"])
         results = options.ocf_ldap.search_st(OCF_DN, ldap.SCOPE_SUBTREE,
                                              search_filter, retrieve_attrs)

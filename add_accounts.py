@@ -72,12 +72,12 @@ def _add_all_ldap(users, dumps, connection, shell = "/bin/bash"):
 
         if not user["is_group"]:
             if "university_uid" in user:
-                attrs["calNetuid"] = [str(user["university_uid"])]
+                attrs["calnetUid"] = [str(user["university_uid"])]
             else:
                 raise KeyError("User does not have university uid set")
         else:
             if "university_uid" in user:
-                attrs["oslgid"] = [str(user["university_uid"])]
+                attrs["callinkOid"] = [str(user["university_uid"])]
 
         # Enter it into LDAP
         ldif = ldap.modlist.addModlist(attrs)
