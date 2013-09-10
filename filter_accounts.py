@@ -23,7 +23,7 @@ def _staff_approval(user, error_str, accepted, needs_approval, rejected, options
         return False
 
     prompt = "{0}\n{1} ({2})\n"
-    prompt += "Approve this account? "
+    prompt += "Approve this account? [yes/no/ignore] "
     prompt = prompt.format(error_str, user["account_name"], user["owner"])
 
     ret = raw_input(prompt).strip().lower()
