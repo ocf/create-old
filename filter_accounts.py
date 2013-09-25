@@ -378,8 +378,8 @@ def filter_accounts(users, options):
       _filter_university_uid_duplicates(accepted, needs_approval, rejected, options)
 
     # Check for email address duplicates
-    accepted, needs_approval, rejected = \
-      _filter_email_duplicates(accepted, needs_approval, rejected, options)
+    # accepted, needs_approval, rejected = \
+    #   _filter_email_duplicates(accepted, needs_approval, rejected, options)
 
     # Check for OCF existing account duplicates
     accepted, needs_approval, rejected = \
