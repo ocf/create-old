@@ -362,8 +362,8 @@ def filter_accounts(users, options):
     rejected = []
 
     # Check for log duplicates
-    accepted, needs_approval, rejected = \
-      _filter_log_duplicates(accepted, needs_approval, rejected, options)
+    # accepted, needs_approval, rejected = \
+    #   _filter_log_duplicates(accepted, needs_approval, rejected, options)
 
     # Check for account name duplicates
     accepted, needs_approval, rejected = \
