@@ -17,6 +17,9 @@ import ldap
 from ocf import OCF_DN
 from utils import get_log_entries, fancy_open, write_users
 
+ACCOUNT_REJECTED_LETTER = \
+  os.path.join(os.path.dirname(__file__), "txt", "acct.rejected.letter")
+
 def _staff_approval(user, error_str, accepted, needs_approval, rejected, options):
     if not options.interactive:
         needs_approval.append((user, error_str))
@@ -352,6 +355,22 @@ def _send_filter_mail(accepted, needs_approval, rejected, options,
         s = Popen(["sendmail", "-t"], stdin = PIPE)
         s.communicate(msg.as_string())
 
+def _send_rejection_mail(rejected, options,
+                         me = "OCF Staff <help@ocf.berkeley.edu>"):
+    if rejected and options.email:
+        rejected_text = open(ACCOUNT_REJECTED_LETTER).read()
+
+        for user, comment in rejected:
+            text = rejected_text.format(account_name = user["account_name"],
+                                       comment = comment)
+            msg = MIMEText(text)
+            msg["Subject"] = "OCF account request rejected"
+            msg["From"] = me
+            msg["To"] = user["email"]
+
+            s = Popen(["sendmail", "-t"], stdin = PIPE)
+            s.communicate(msg.as_string())
+
 def filter_accounts(users, options):
     """
     Filter accounts into auto-accepted, needs-staff-approval, and rejected.
@@ -403,5 +422,6 @@ def filter_accounts(users, options):
 
     # Email out this information
     _send_filter_mail(accepted, needs_approval, rejected, options)
+    _send_rejection_mail(rejected, options)
 
     return needs_approval

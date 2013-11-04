@@ -40,9 +40,6 @@ def _check_account_name(account_name):
     # do getent passwd account_name
     pass
 
-def _email_problems():
-    pass
-
 def _finish_account_creation(src):
     now = datetime.now().strftime("%Y-%m-%d")
     directory, name = os.path.split(src)
