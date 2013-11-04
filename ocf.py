@@ -31,6 +31,6 @@ def log_creation(user, options):
     with fancy_open(options.log_file, "a", lock = True) as f:
         sections = [user["account_name"], user["owner"], user["university_uid"],
                     getuser(), gethostname(), 1, int(user["is_group"]),
-                    asctime()]
+                    asctime(), user["responsible"]]
 
         f.write(":".join([str(i) for i in sections]) + "\n")

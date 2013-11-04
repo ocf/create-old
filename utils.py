@@ -40,7 +40,7 @@ def decrypt_password(password, priv_key):
 
 def get_users(stream, options):
     fields = ("account_name", "personal_owner", "group_owner", "email",
-              "forward", "is_group", "password", "university_uid")
+              "forward", "is_group", "password", "university_uid", "responsible")
 
     for line in stream:
         line = line.strip()
@@ -92,7 +92,7 @@ def get_log_entries(stream):
 
         l = line.split(":")
 
-        if len(l) not in [10, 11]:
+        if len(l) < 10 or len(l) > 12:
             raise Exception("Line has unexpected format")
 
         user = {}
@@ -108,6 +108,9 @@ def get_log_entries(stream):
 
         user["created"] = bool(int(l[i + 2]))
         user["is_group"] = bool(int(l[i + 3]))
+
+        if len(l) == 12:
+            user["responsible"] = l[11]
 
         yield user
 
