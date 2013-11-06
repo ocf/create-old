@@ -79,7 +79,8 @@ def write_users(stream, users):
            str(int(user["forward"])),
            str(int(user["is_group"])),
            user["password"],
-           user["university_uid"]]
+           user["university_uid"],
+           user["responsible"]]
 
         stream.write(":".join(items) + "\n")
 
