@@ -131,25 +131,17 @@ def main(args):
         check_call(["kdestroy"])
 
     if options.backup:
-        dest = os.path.join(options.backup, str(datetime.now()))
+        files = [options.mid_approve, options.users_file]
 
-        try:
-            os.makedirs(dest)
-        except OSError as e:
-            if e.errno != errno.EEXIST:
-                raise e
+        for s_path in files:
+            if os.path.isfile(s_path):
+                d_path = os.path.join(options.backup, os.path.basename(s_path))
 
-        try:
-            shutil.copy(options.mid_approve, dest)
-        except IOError as e:
-            if e.errno != errno.ENOENT:
-                raise e
+                with open(d_path, "a") as dest, open(s_path) as src:
+                    now = datetime.now()
+                    dest.write("# Backup of {0} as it appeared on {1}\n".format(s_path, now))
 
-        try:
-            shutil.copy(options.users_file, dest)
-        except IOError as e:
-            if e.errno != errno.ENOENT:
-                raise e
+                    shutil.copyfileobj(src, dest)
 
     # Process all of the recently requested accounts
     with fancy_open(options.users_file, lock = True,
