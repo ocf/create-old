@@ -45,7 +45,7 @@ def get_users(stream, options):
     for line in stream:
         line = line.strip()
 
-        if not line:
+        if not line or line.startswith("#"):
             continue
 
         split = line.split(":")
@@ -88,7 +88,7 @@ def get_log_entries(stream):
     for line in stream:
         line = line.strip()
 
-        if not line:
+        if not line or line.startswith("#"):
             continue
 
         l = line.split(":")
