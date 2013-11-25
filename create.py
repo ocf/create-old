@@ -117,15 +117,15 @@ def main(args):
     options.ocf_ldap.simple_bind_s("", "")
     options.ocf_ldap.protocol_version = ldap.VERSION3
 
-    # Autheticate our ldap session using gssapi
-    options.admin_password = \
-      getpass("{0}/admin@OCF.BERKELEY.EDU's Password: ".format(options.admin_user))
-
     # Process the users in the mid stage of approval first
     try:
         principal = options.admin_user + "/admin"
 
         if getattr(options, "keytab", None) is None:
+            # Autheticate our ldap session using gssapi
+            options.admin_password = \
+              getpass("{0}@OCF.BERKELEY.EDU's Password: ".format(principal))
+
             kinit(principal, options.admin_password)
         else:
             kinit(principal, None, keytab = options.keytab)
