@@ -71,5 +71,5 @@ def finalize_accounts(users, options):
         for uid, user in enumerate(users, start = uid_start):
             user["uid_number"] = uid
 
-        add_all(users, options, verbose = True)
+        add_all(users, options)
         _send_finalize_emails(users, options)
