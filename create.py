@@ -94,6 +94,9 @@ def _create_parser():
     parser.add_argument("-d", "--uidlowerbound", dest = "conflict_uid_lower_bound",
                         default = 16000,
                         help = "Lower bound for OCF name collision detection")
+    parser.add_argument("-k", "--keytab", dest = "keytab",
+                        default = None
+                        help = "Keytab file to use for kinit")
 
     return parser
 
@@ -121,7 +124,13 @@ def main(args):
 
     # Process the users in the mid stage of approval first
     try:
-        kinit("{0}/admin".format(options.admin_user), options.admin_password)
+        principal = options.admin_user + "/admin"
+
+        if options.keytab is None:
+            kinit(principal, options.admin_password)
+        else:
+            kinit(principal, None, keytab = options.keytab)
+
         options.ocf_ldap.sasl_interactive_bind_s("", ldap.sasl.gssapi(""))
 
         with fancy_open(options.mid_approve, lock = True,
