@@ -4,10 +4,8 @@
 from __future__ import with_statement, print_function
 
 import base64
-import errno
 from grp import getgrnam
 import pexpect
-from pwd import getpwnam
 from subprocess import check_call
 import os
 import tempfile
@@ -96,27 +94,20 @@ def _add_home_dir(user, dump = None):
     # Probably want to copy their homedir to a tmp directory...or maybe
     # we can just forgo the dump/add paradigm for files
     home = home_dir(user["account_name"])
-    ret = os.system("install -d --mode=0700 --group=ocf --owner={} {}"
-                    .format(user["account_name"], home))
-    if ret != 0:
-        raise Exception("Error creating user home directory")
+    check_call(["install", "-d", "--mode=0700", "--group=ocf",
+                "--owner=" + user["account_name"], home])
 
     if dump is None:
         for name in [".cshrc", ".bashrc", ".bash_profile", ".bash_logout"]:
             path = os.path.join(os.path.dirname(__file__), "rc", name)
-            ret = os.system("install --mode=0600 --group=ocf --owner={} {} {}"
-                            .format(user["account_name"], path, home))
-            if ret != 0:
-                raise Exception("Error installing user dotfiles")
+            check_call(["install", "--mode=0600", "--group=ocf",
+                        "--owner=" + user["account_name"], path, home])
 
 def _add_web_dir(user, dump = None):
     # See comments in _add_home_dir
     http = http_dir(user["account_name"])
-    ret = os.system("install -d --mode=0000 --group=ocf --owner={} {}"
-                    .format(user["account_name"], http))
-
-    if ret != 0:
-        raise Exception("Error creating user http directory")
+    check_call(["install", "-d", "--mode=0000", "--group=ocf",
+                "--owner=" + user["account_name"], http])
 
 def _add_forward(user, dump = None):
     if dump is None and user["forward"]:
@@ -127,11 +118,8 @@ def _add_forward(user, dump = None):
         with open(tmp, "w") as f:
             print >> f, user["email"]
 
-        ret = os.system("install --group=ocf --owner={} {} {}"
-                        .format(user["account_name"], tmp, forward))
-
-        if ret != 0:
-            raise Exception("Error create user forward email file")
+        check_call(["install", "--group=ocf", "--owner=" + user["account_name"],
+                    tmp, forward])
 
 def _add_postgresql(user, options, dump = None):
     """
