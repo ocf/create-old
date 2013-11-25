@@ -161,5 +161,5 @@ def kinit(principal, password, keytab = None, domain = "OCF.BERKELEY.EDU"):
                   file = sys.stderr)
             sys.exit()
     else:
-        process = pexpect.spawn("kinit {0} --keytab={1}"
-                                .format(principal, keytab))
+        process = pexpect.spawn("kinit --use-keytab --keytab={0} {1}"
+                                .format(keytab, principal))
