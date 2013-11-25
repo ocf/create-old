@@ -21,7 +21,10 @@ from ocf import home_dir, http_dir, OCF_DN, log_creation
 
 def _add_all_kerberos(users, dumps, options, domain = "OCF.BERKELEY.EDU"):
     principal = "{0}/admin".format(options.admin_user)
-    kadmin = pexpect.spawn("kadmin", ["-p", principal])
+    args = ["--principal=" + principal]
+    if options.keytab:
+        args.append("--keytab=" + options.ketab)
+    kadmin = pexpect.spawn("kadmin", args)
     kadmin.expect("kadmin> ")
 
     for user, dump in zip(users, dumps):
