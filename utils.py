@@ -9,6 +9,7 @@ import errno
 import fcntl
 import os
 import pexpect
+from subprocess import check_call
 import sys
 
 # Password decryption
@@ -161,5 +162,4 @@ def kinit(principal, password, keytab = None, domain = "OCF.BERKELEY.EDU"):
                   file = sys.stderr)
             sys.exit()
     else:
-        process = pexpect.spawn("kinit --use-keytab --keytab={0} {1}"
-                                .format(keytab, principal))
+        check_call(["kinit", "--use-keytab", "--keytab=" + keytab, principal])
