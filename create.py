@@ -95,7 +95,6 @@ def _create_parser():
                         default = 16000,
                         help = "Lower bound for OCF name collision detection")
     parser.add_argument("-k", "--keytab", dest = "keytab",
-                        default = None
                         help = "Keytab file to use for kinit")
 
     return parser
@@ -126,7 +125,7 @@ def main(args):
     try:
         principal = options.admin_user + "/admin"
 
-        if options.keytab is None:
+        if getattr(options, "keytab", None) is None:
             kinit(principal, options.admin_password)
         else:
             kinit(principal, None, keytab = options.keytab)
