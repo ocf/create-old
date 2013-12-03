@@ -104,8 +104,8 @@ def main(args):
 
     options = _create_parser().parse_args(args = args)
 
-    if os.environ.get("USER", "") != "root":
-        raise RuntimeError("Not running as superuser")
+    if os.environ.get("USER", "") not in ["root", "create"]:
+        raise RuntimeError("Not running as correct user")
 
     options.calnet_ldap = ldap.initialize(options.calnet_ldap_url)
     options.calnet_ldap.simple_bind_s("", "")
