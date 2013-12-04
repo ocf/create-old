@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.join(os.path.split(__file__)[0], "lib", "python2.6", 
 import argparse
 from datetime import datetime
 import errno
-from getpass import getpass
+from getpass import getpass, getuser
 from grp import getgrnam
 from pwd import getpwnam
 import shutil
@@ -106,8 +106,9 @@ def main(args):
 
     options = _create_parser().parse_args(args = args)
 
-    if os.environ.get("USER", "") not in ["root", "create"]:
-        raise RuntimeError("Not running as correct user")
+    user = getuser()
+    if user not in ["root", "create"]:
+        raise RuntimeError("Not running as correct user: " + user)
 
     options.calnet_ldap = ldap.initialize(options.calnet_ldap_url)
     options.calnet_ldap.simple_bind_s("", "")
