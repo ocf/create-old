@@ -309,7 +309,7 @@ def _send_filter_mail(accepted, needs_approval, rejected, options,
                       me = "OCF Site Manager <sm@ocf.berkeley.edu>",
                       staff = "sm@ocf.berkeley.edu"):
     if (accepted or needs_approval or rejected) and options.email:
-        user = os.environ.get("SUDO_USER", os.environ.get("USER", ""))
+        user = options.admin_user
         body = "Account filtering run by {0}, results:\n\n".format(user)
 
         if accepted:

@@ -13,7 +13,7 @@ from __future__ import with_statement, print_function
 import argparse
 from datetime import datetime
 from email.mime.text import MIMEText
-from getpass import getpass
+from getpass import getpass, getuser
 import os
 from subprocess import Popen, PIPE, check_call
 import sys
@@ -50,7 +50,7 @@ def _delete_parser():
     parser = argparse.ArgumentParser(description = "Delete user accounts.")
 
     parser.add_argument("-a", "--admin-user", dest = "admin_user",
-                        default = os.environ.get("SUDO_USER", os.environ.get("USER", "")),
+                        default = os.environ.get("SUDO_USER", getuser()),
                         help = "User to autheticate through kerberos with")
     parser.add_argument("-n", "--no-email", dest = "email",
                         action = "store_false",
@@ -66,8 +66,9 @@ def _delete_parser():
 def main(args):
     options = _delete_parser().parse_args(args = args)
 
-    if os.environ.get("USER", "") != "root":
-        raise RuntimeError("Not running as superuser")
+    user = getuser()
+    if user not in ["root", "create"]:
+        raise RuntimeError("Not running as superuser: " + user)
 
     options.ocf_ldap = ldap.initialize(options.ocf_ldap_url)
     options.ocf_ldap.simple_bind_s("", "")
