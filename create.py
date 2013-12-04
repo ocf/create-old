@@ -68,7 +68,7 @@ def _create_parser():
                         default = "/opt/create/private/mid_approved.users",
                         help = "Input file of users in mid stage of approval")
     parser.add_argument("-a", "--admin-user", dest = "admin_user",
-                        default = os.environ.get("SUDO_USER", os.environ.get("USER", "")),
+                        default = os.environ.get("SUDO_USER", getuser()),
                         help = "User to autheticate through kerberos with")
     parser.add_argument("-i", "--interactive", dest = "interactive",
                         action = "store_true",
