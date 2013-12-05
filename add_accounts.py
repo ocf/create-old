@@ -119,7 +119,7 @@ def _add_forward(user, dump = None):
         tmp = tempfile.mkstemp()[1]
 
         with open(tmp, "w") as f:
-            print >> f, user["email"]
+            f.write(user["email"] + "\n")
 
         check_call(["install", "--group=ocf", "--owner=" + user["account_name"],
                     tmp, forward])
