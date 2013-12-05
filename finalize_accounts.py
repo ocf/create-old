@@ -26,16 +26,14 @@ def _send_finalize_emails(users, options,
 
     if users and options.email:
         created_text = open(ACCOUNT_CREATED_LETTER).read()
+        os.environ["REPLYTO"] = me
 
         for user in users:
-            text = created_text.format(account_name = user["account_name"])
-            msg = MIMEText(text)
-            msg["Subject"] = "OCF account created"
-            msg["From"] = me
-            msg["To"] = user["email"]
+            body = created_text.format(account_name = user["account_name"])
 
-            s = Popen(["sendmail", "-t"], stdin = PIPE)
-            s.communicate(msg.as_string())
+            s = Popen(["mail", "-s", "OCF Account Created", user["email"]],
+                      stdin = PIPE)
+            s.communicate(body)
 
         # Notify staff of all the created accounts
         user = options.admin_user
@@ -44,13 +42,8 @@ def _send_finalize_emails(users, options,
         for user in users:
             body += "{0}: {1}\n".format(user["account_name"], user["owner"])
 
-        msg = MIMEText(body)
-        msg["Subject"] = "Created OCF accounts"
-        msg["From"] = me
-        msg["To"] = staff
-
-        s = Popen(["sendmail", "-t"], stdin = PIPE)
-        s.communicate(msg.as_string())
+        s = Popen(["mail", "-s", "Created OCF Accounts", staff], stdin = PIPE)
+        s.communicate(body)
 
 def _get_max_uid_number(connection):
     entries = connection.search_st(OCF_DN, ldap.SCOPE_SUBTREE, "(uid=*)",

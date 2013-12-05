@@ -24,9 +24,7 @@ import ldap.sasl
 from rm_accounts import rm_all
 from utils import kinit
 
-def _send_rm_emails(users, options,
-                    me = "OCF Site Manager <sm@ocf.berkeley.edu>",
-                    staff = "sm@ocf.berkeley.edu"):
+def _send_rm_emails(users, options, staff = "sm@ocf.berkeley.edu"):
     """
     Notify users and staff that accounts were deleted.
     """
@@ -38,13 +36,8 @@ def _send_rm_emails(users, options,
         for user in users:
             body += "{0}\n".format(user["account_name"])
 
-        msg = MIMEText(body)
-        msg["Subject"] = "Deleted OCF accounts"
-        msg["From"] = me
-        msg["To"] = staff
-
-        s = Popen(["sendmail", "-t"], stdin = PIPE)
-        s.communicate(msg.as_string())
+        s = Popen(["mail", "-s", "Deleted OCF Accounts", staff], stdin = PIPE)
+        s.communicate(body)
 
 def _delete_parser():
     parser = argparse.ArgumentParser(description = "Delete user accounts.")

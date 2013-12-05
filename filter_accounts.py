@@ -306,7 +306,6 @@ def _filter_real_names(accepted, needs_approval, rejected, options):
     return accepted_new, needs_approval_new, rejected_new
 
 def _send_filter_mail(accepted, needs_approval, rejected, options,
-                      me = "OCF Site Manager <sm@ocf.berkeley.edu>",
                       staff = "sm@ocf.berkeley.edu"):
     if (accepted or needs_approval or rejected) and options.email:
         user = options.admin_user
@@ -347,29 +346,21 @@ def _send_filter_mail(accepted, needs_approval, rejected, options,
         body += "--Account creation bot\n"
 
         # Send out the mail!
-        msg = MIMEText(body)
-        msg["Subject"] = "Account Filtering Results"
-        msg["From"] = me
-        msg["To"] = staff
-
-        s = Popen(["sendmail", "-t"], stdin = PIPE)
-        s.communicate(msg.as_string())
+        s = Popen(["mail", "-s", "Account Filtering Results", staff], stdin = PIPE)
+        s.communicate(body)
 
 def _send_rejection_mail(rejected, options,
                          me = "OCF Staff <help@ocf.berkeley.edu>"):
     if rejected and options.email:
         rejected_text = open(ACCOUNT_REJECTED_LETTER).read()
+        os.environ["REPLYTO"] = me
 
         for user, comment in rejected:
-            text = rejected_text.format(account_name = user["account_name"],
+            body = rejected_text.format(account_name = user["account_name"],
                                        comment = comment)
-            msg = MIMEText(text)
-            msg["Subject"] = "OCF account request rejected"
-            msg["From"] = me
-            msg["To"] = user["email"]
-
-            s = Popen(["sendmail", "-t"], stdin = PIPE)
-            s.communicate(msg.as_string())
+            s = Popen(["mail", "-s", "OCF Account Request Rejected", user["email"]],
+                      stdin = PIPE)
+            s.communicate(body)
 
 def filter_accounts(users, options):
     """
