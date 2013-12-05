@@ -23,7 +23,7 @@ def _add_all_kerberos(users, dumps, options, domain = "OCF.BERKELEY.EDU"):
     principal = "{0}/admin".format(options.admin_user)
     args = ["--principal=" + principal]
     if options.keytab:
-        args.append("--keytab=" + options.ketab)
+        args.append("--keytab=" + options.keytab)
     kadmin = pexpect.spawn("kadmin", args)
     kadmin.expect("kadmin> ")
 
