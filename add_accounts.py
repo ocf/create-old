@@ -97,19 +97,19 @@ def _add_home_dir(user, dump = None):
     # Probably want to copy their homedir to a tmp directory...or maybe
     # we can just forgo the dump/add paradigm for files
     home = home_dir(user["account_name"])
-    check_call(["install", "-d", "--mode=0700", "--group=ocf",
+    check_call(["sudo", "install", "-d", "--mode=0700", "--group=ocf",
                 "--owner=" + user["account_name"], home])
 
     if dump is None:
         for name in [".cshrc", ".bashrc", ".bash_profile", ".bash_logout"]:
             path = os.path.join(os.path.dirname(__file__), "rc", name)
-            check_call(["install", "--mode=0600", "--group=ocf",
+            check_call(["sudo", "install", "--mode=0600", "--group=ocf",
                         "--owner=" + user["account_name"], path, home])
 
 def _add_web_dir(user, dump = None):
     # See comments in _add_home_dir
     http = http_dir(user["account_name"])
-    check_call(["install", "-d", "--mode=0000", "--group=ocf",
+    check_call(["sudo", "install", "-d", "--mode=0000", "--group=ocf",
                 "--owner=" + user["account_name"], http])
 
 def _add_forward(user, dump = None):
@@ -121,7 +121,7 @@ def _add_forward(user, dump = None):
         with open(tmp, "w") as f:
             f.write(user["email"] + "\n")
 
-        check_call(["install", "--group=ocf", "--owner=" + user["account_name"],
+        check_call(["sudo", "install", "--group=ocf", "--owner=" + user["account_name"],
                     tmp, forward])
 
 def _add_postgresql(user, options, dump = None):
