@@ -166,18 +166,3 @@ def kinit(principal, password, keytab = None, domain = "OCF.BERKELEY.EDU"):
             ["kinit", "--use-keytab", "--keytab=" + keytab, principal],
             stdout = sys.stderr
             )
-
-class null_out:
-    """
-    Class to imitate a file handler but never write the information anywhere.
-    """
-    def write(self, arg):
-        pass
-    def writelines(self, arg):
-        pass
-    def isatty(self):
-        return False
-    def flush(self):
-        pass
-    def close(self):
-        pass

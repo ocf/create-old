@@ -14,7 +14,7 @@ import sys
 import ldap
 import ldap.modlist
 
-from utils import decrypt_password, null_out
+from utils import decrypt_password
 from ocf import home_dir, http_dir, OCF_DN, log_creation
 
 # See https://rt.ocf.berkeley.edu/Ticket/Display.html?id=638 for a list of
@@ -89,7 +89,7 @@ def _add_all_ldap(users, dumps, connection, shell = "/bin/bash"):
             print("LDAP account already exists", file = sys.stderr)
 
     # Invalidate the local cache so we can chown their files later
-    check_call(["nscd", "-i", "passwd"], stdout = null_out())
+    check_call(["nscd", "-i", "passwd"], stdout = open(os.devnull, "w"))
 
 def _add_ldap_groups(user, options, dump = None):
     pass
