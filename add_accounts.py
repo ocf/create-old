@@ -9,6 +9,7 @@ import pexpect
 from subprocess import check_call
 import os
 import tempfile
+import sys
 
 import ldap
 import ldap.modlist
@@ -53,7 +54,7 @@ def _add_all_kerberos(users, dumps, options, domain = "OCF.BERKELEY.EDU"):
             elif i in [1, 2]:
                 kadmin.sendline(user_password)
             elif i == 3:
-                print(kadmin.match.group(0))
+                print(kadmin.match.group(0), file = sys.stderr)
 
     kadmin.sendline("exit")
     kadmin.expect(pexpect.EOF)
@@ -85,10 +86,10 @@ def _add_all_ldap(users, dumps, connection, shell = "/bin/bash"):
         try:
             connection.add_s(dn, ldif)
         except ldap.ALREADY_EXISTS:
-            print("LDAP account already exists")
+            print("LDAP account already exists", file = sys.stderr)
 
     # Invalidate the local cache so we can chown their files later
-    check_call(["nscd", "-i", "passwd"])
+    check_call(["nscd", "-i", "passwd"], stdout = sys.stderr)
 
 def _add_ldap_groups(user, options, dump = None):
     pass
@@ -97,20 +98,29 @@ def _add_home_dir(user, dump = None):
     # Probably want to copy their homedir to a tmp directory...or maybe
     # we can just forgo the dump/add paradigm for files
     home = home_dir(user["account_name"])
-    check_call(["sudo", "install", "-d", "--mode=0700", "--group=ocf",
-                "--owner=" + user["account_name"], home])
+    check_call(
+        ["sudo", "install", "-d", "--mode=0700", "--group=ocf",
+         "--owner=" + user["account_name"], home],
+        stdout = sys.stderr
+        )
 
     if dump is None:
         for name in [".cshrc", ".bashrc", ".bash_profile", ".bash_logout"]:
             path = os.path.join(os.path.dirname(__file__), "rc", name)
-            check_call(["sudo", "install", "--mode=0600", "--group=ocf",
-                        "--owner=" + user["account_name"], path, home])
+            check_call(
+                ["sudo", "install", "--mode=0600", "--group=ocf",
+                 "--owner=" + user["account_name"], path, home],
+                stdout = sys.stderr
+                )
 
 def _add_web_dir(user, dump = None):
     # See comments in _add_home_dir
     http = http_dir(user["account_name"])
-    check_call(["sudo", "install", "-d", "--mode=0000", "--group=ocf",
-                "--owner=" + user["account_name"], http])
+    check_call(
+        ["sudo", "install", "-d", "--mode=0000", "--group=ocf",
+         "--owner=" + user["account_name"], http],
+        stdout = sys.stderr
+        )
 
 def _add_forward(user, dump = None):
     if dump is None and user["forward"]:
@@ -121,8 +131,11 @@ def _add_forward(user, dump = None):
         with open(tmp, "w") as f:
             f.write(user["email"] + "\n")
 
-        check_call(["sudo", "install", "--group=ocf", "--owner=" + user["account_name"],
-                    tmp, forward])
+        check_call(
+            ["sudo", "install", "--group=ocf", "--owner=" + user["account_name"],
+             tmp, forward],
+            stdout = sys.stderr
+            )
 
 def _add_postgresql(user, options, dump = None):
     """
@@ -169,15 +182,18 @@ def add_all(users, options, dumps = None, verbose = False):
         dumps = [None] * len(users)
 
     if verbose:
-        print("Creating all kerberos and ldap accounts")
+        print("Creating all kerberos and ldap accounts", file = sys.stderr)
 
     _add_all_kerberos(users, dumps, options)
     _add_all_ldap(users, dumps, options.ocf_ldap)
 
     for user, dump in zip(users, dumps):
         if verbose:
-            print("Creating new account, {0}, for {1}"
-                  .format(user["account_name"], user["owner"]))
+            print(
+                "Creating new account, {0}, for {1}"
+                .format(user["account_name"], user["owner"]),
+                file = sys.stderr
+                )
 
         _add_home_dir(user, dump = dump)
         _add_web_dir(user, dump = dump)

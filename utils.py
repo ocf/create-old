@@ -162,4 +162,7 @@ def kinit(principal, password, keytab = None, domain = "OCF.BERKELEY.EDU"):
                   file = sys.stderr)
             sys.exit()
     else:
-        check_call(["kinit", "--use-keytab", "--keytab=" + keytab, principal])
+        check_call(
+            ["kinit", "--use-keytab", "--keytab=" + keytab, principal],
+            stdout = sys.stderr
+            )

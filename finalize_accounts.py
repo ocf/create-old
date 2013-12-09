@@ -7,6 +7,7 @@ from __future__ import with_statement, print_function
 from datetime import datetime
 from email.mime.text import MIMEText
 import os
+import sys
 from subprocess import Popen, PIPE
 
 import ldap
@@ -59,9 +60,9 @@ def finalize_accounts(users, options):
 
     if users:
         # Need to assign uid to new users
-        print("Getting current max uid ...")
+        print("Getting current max uid ...", file = sys.stderr)
         uid_start = _get_max_uid_number(options.ocf_ldap) + 1
-        print("UIDs for new users will start at {0}".format(uid_start))
+        print("UIDs for new users will start at {0}".format(uid_start), file = sys.stderr)
 
         for uid, user in enumerate(users, start = uid_start):
             user["uid_number"] = uid
