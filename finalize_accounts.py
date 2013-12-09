@@ -60,9 +60,13 @@ def finalize_accounts(users, options):
 
     if users:
         # Need to assign uid to new users
-        print("Getting current max uid ...", file = sys.stderr)
+        if options.verbose:
+            print("Getting current max uid ...")
+
         uid_start = _get_max_uid_number(options.ocf_ldap) + 1
-        print("UIDs for new users will start at {0}".format(uid_start), file = sys.stderr)
+
+        if options.verbose:
+            print("UIDs for new users will start at {0}".format(uid_start))
 
         for uid, user in enumerate(users, start = uid_start):
             user["uid_number"] = uid

@@ -14,7 +14,7 @@ import sys
 import ldap
 import ldap.modlist
 
-from utils import decrypt_password
+from utils import decrypt_password, null_out
 from ocf import home_dir, http_dir, OCF_DN, log_creation
 
 # See https://rt.ocf.berkeley.edu/Ticket/Display.html?id=638 for a list of
@@ -89,7 +89,7 @@ def _add_all_ldap(users, dumps, connection, shell = "/bin/bash"):
             print("LDAP account already exists", file = sys.stderr)
 
     # Invalidate the local cache so we can chown their files later
-    check_call(["nscd", "-i", "passwd"], stdout = sys.stderr)
+    check_call(["nscd", "-i", "passwd"], stdout = null_out())
 
 def _add_ldap_groups(user, options, dump = None):
     pass
@@ -175,25 +175,22 @@ def _add_mail(user, dump, options):
 def _add_user_info(user, dump, options):
     pass
 
-def add_all(users, options, dumps = None, verbose = False):
+def add_all(users, options, dumps = None):
     if dumps:
         assert len(dumps) == len(users)
     else:
         dumps = [None] * len(users)
 
-    if verbose:
-        print("Creating all kerberos and ldap accounts", file = sys.stderr)
+    if options.verbose:
+        print("Creating all kerberos and ldap accounts")
 
     _add_all_kerberos(users, dumps, options)
     _add_all_ldap(users, dumps, options.ocf_ldap)
 
     for user, dump in zip(users, dumps):
-        if verbose:
-            print(
-                "Creating new account, {0}, for {1}"
-                .format(user["account_name"], user["owner"]),
-                file = sys.stderr
-                )
+        if options.verbose:
+            print("Creating new account, {0}, for {1}"
+                  .format(user["account_name"], user["owner"]))
 
         _add_home_dir(user, dump = dump)
         _add_web_dir(user, dump = dump)

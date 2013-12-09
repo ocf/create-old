@@ -79,6 +79,9 @@ def _create_parser():
     parser.add_argument("-n", "--no-email", dest = "email",
                         action = "store_false",
                         help = "Don't send account creation / rejection emails")
+    parser.add_argument("-v", "--verbose", dest = "verbose",
+                        action = "store_true",
+                        help = "Print information on script actions")
     parser.add_argument("-l", "--logfile", dest = "log_file",
                         default = "/opt/create/public/approved.log",
                         help = "Input file of approved log")
