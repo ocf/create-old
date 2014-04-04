@@ -19,8 +19,9 @@ ACCOUNT_CREATED_LETTER = \
   os.path.join(os.path.dirname(__file__), "txt", "acct.created.letter")
 
 def _send_finalize_emails(users, options,
-                          me = "OCF Staff <help@ocf.berkeley.edu>",
-                          staff = "sm@ocf.berkeley.edu"):
+                          me = "Open Computing Facility <help@ocf.berkeley.edu>",
+                          staff = "sm@ocf.berkeley.edu",
+                          bot = "OCF Account Creation Bot <root@ocf.berkeley.edu>"):
     """
     Notify users and staff that accounts were created.
     """
@@ -32,7 +33,7 @@ def _send_finalize_emails(users, options,
         for user in users:
             body = created_text.format(account_name = user["account_name"])
 
-            s = Popen(["mail", "-s", "OCF Account Created", user["email"]],
+            s = Popen(["mail", "-a", "From: " + me, "-s", "OCF Account Created", user["email"]],
                       stdin = PIPE)
             s.communicate(body)
 
@@ -43,7 +44,7 @@ def _send_finalize_emails(users, options,
         for user in users:
             body += "{0}: {1}\n".format(user["account_name"], user["owner"])
 
-        s = Popen(["mail", "-s", "Created OCF Accounts", staff], stdin = PIPE)
+        s = Popen(["mail", "-a", "From: " + bot, "-s", "Created OCF Accounts", staff], stdin = PIPE)
         s.communicate(body)
 
 def _get_max_uid_number(connection):
