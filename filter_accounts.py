@@ -246,8 +246,8 @@ def _filter_restricted_names(accepted, needs_approval, rejected, options):
                                  for word in words
                                  if word in user["account_name"])
 
-            message = "{0} not allowed in username: {1}".format(
-                bad_list, user["account_name"])
+            message = "{0} not allowed in username: {1} (Real Name: {2})".format(
+                bad_list, user["account_name"], user["owner"])
 
             _staff_approval(user, message, accepted_new,
                             needs_approval_new, rejected_new,
