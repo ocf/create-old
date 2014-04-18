@@ -246,8 +246,8 @@ def _filter_restricted_names(accepted, needs_approval, rejected, options):
                                  for word in words
                                  if word in user["account_name"])
 
-            message = "{0} not allowed in username: {1} (Real Name: {2})".format(
-                bad_list, user["account_name"], user["owner"])
+            message = "{0} not allowed in username: {1}".format(
+                bad_list, user["account_name"])
 
             _staff_approval(user, message, accepted_new,
                             needs_approval_new, rejected_new,
@@ -320,7 +320,9 @@ def _send_filter_mail(accepted, needs_approval, rejected, options,
             body += " (Accounts will be created next time this script runs):\n\n"
 
             for user in accepted:
-                body += "    {0} ({1})\n".format(user["account_name"], user["owner"])
+                body += "    {0} ({1})\n".format(
+                  user["account_name"],
+                  ("group: " if user["is_group"] else "") + user["owner"])
 
             body += "\n"
 
@@ -328,8 +330,10 @@ def _send_filter_mail(accepted, needs_approval, rejected, options,
             body += "Needs staff approval:\n\n"
 
             for user, comment in needs_approval:
-                body += "    {0} ({1}): {2}\n".format(user["account_name"],
-                                                      user["owner"], comment)
+                body += "    {0} ({1}): {2}\n".format(
+                  user["account_name"],
+                  ("group: " if user["is_group"] else "") + user["owner"],
+                  comment)
 
             body += "\n"
 
@@ -337,8 +341,10 @@ def _send_filter_mail(accepted, needs_approval, rejected, options,
             body += "Rejected:\n\n"
 
             for user, comment in rejected:
-                body += "    {0} ({1}): {2}\n".format(user["account_name"],
-                                                      user["owner"], comment)
+                body += "    {0} ({1}): {2}\n".format(
+                  user["account_name"],
+                  ("group: " if user["is_group"] else "") + user["owner"],
+                  comment)
 
             body += "\n"
 
