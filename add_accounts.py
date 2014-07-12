@@ -70,6 +70,7 @@ def _add_all_ldap(users, dumps, connection, shell = "/bin/bash"):
             "gidNumber": [str(getgrnam("ocf").gr_gid)],
             "homeDirectory": [home_dir(user["account_name"])],
             "loginShell": [shell],
+            "mail": [user["email"]],
             "userPassword": [str("{SASL}" + user["account_name"] + "@OCF.BERKELEY.EDU")]
         }
 
