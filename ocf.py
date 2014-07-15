@@ -13,6 +13,9 @@ from utils import fancy_open
 
 OCF_DN = "ou=People,dc=OCF,dc=Berkeley,dc=EDU"
 
+MAIL_FROM_HELP = "Open Computing Facility <help@ocf.berkeley.edu>"
+MAIL_FROM_BOT = "OCF Account Creation Bot <root@ocf.berkeley.edu>"
+
 def home_dir(account_name):
     """
     Returns the user's home directory: "/home/u/us/account_name".

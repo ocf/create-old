@@ -11,6 +11,7 @@ import sys
 from subprocess import Popen, PIPE
 
 import ldap
+import ocf
 
 from ocf import OCF_DN
 from add_accounts import add_all
@@ -18,22 +19,19 @@ from add_accounts import add_all
 ACCOUNT_CREATED_LETTER = \
   os.path.join(os.path.dirname(__file__), "txt", "acct.created.letter")
 
-def _send_finalize_emails(users, options,
-                          me = "Open Computing Facility <help@ocf.berkeley.edu>",
-                          staff = "sm@ocf.berkeley.edu",
-                          bot = "OCF Account Creation Bot <root@ocf.berkeley.edu>"):
+def _send_finalize_emails(users, options, staff="sm@ocf.berkeley.edu"):
     """
     Notify users and staff that accounts were created.
     """
 
     if users and options.email:
         created_text = open(ACCOUNT_CREATED_LETTER).read()
-        os.environ["REPLYTO"] = me
+        os.environ["REPLYTO"] = ocf.MAIL_FROM_HELP
 
         for user in users:
             body = created_text.format(account_name = user["account_name"])
 
-            s = Popen(["mail", "-a", "From: " + me, "-s", "OCF Account Created", user["email"]],
+            s = Popen(["mail", "-a", "From: " + ocf.MAIL_FROM_HELP, "-s", "OCF Account Created", user["email"]],
                       stdin = PIPE)
             s.communicate(body)
 
@@ -44,7 +42,7 @@ def _send_finalize_emails(users, options,
         for user in users:
             body += "{0}: {1}\n".format(user["account_name"], user["owner"])
 
-        s = Popen(["mail", "-a", "From: " + bot, "-s", "Created OCF Accounts", staff], stdin = PIPE)
+        s = Popen(["mail", "-a", "From: " + ocf.MAIL_FROM_BOT, "-s", "Created OCF Accounts", staff], stdin = PIPE)
         s.communicate(body)
 
 def _get_max_uid_number(connection):

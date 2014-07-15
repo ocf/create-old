@@ -20,6 +20,7 @@ import sys
 
 import ldap
 import ldap.sasl
+import ocf
 
 from rm_accounts import rm_all
 from utils import kinit
@@ -36,7 +37,7 @@ def _send_rm_emails(users, options, staff = "sm@ocf.berkeley.edu"):
         for user in users:
             body += "{0}\n".format(user["account_name"])
 
-        s = Popen(["mail", "-s", "Deleted OCF Accounts", staff], stdin = PIPE)
+        s = Popen(["mail", "-a", "From: " + ocf.MAIL_FROM_BOT, "-s", "Deleted OCF Accounts", staff], stdin = PIPE)
         s.communicate(body)
 
 def _delete_parser():

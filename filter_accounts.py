@@ -13,6 +13,7 @@ from difflib import SequenceMatcher
 from itertools import permutations
 
 import ldap
+import ocf
 
 from ocf import OCF_DN
 from utils import get_log_entries, fancy_open, write_users
@@ -352,19 +353,18 @@ def _send_filter_mail(accepted, needs_approval, rejected, options,
         body += "--Account creation bot\n"
 
         # Send out the mail!
-        s = Popen(["mail", "-s", "Account Filtering Results", staff], stdin = PIPE)
+        s = Popen(["mail", "-a", "From: " + ocf.MAIL_FROM_BOT, "-s", "Account Filtering Results", staff], stdin = PIPE)
         s.communicate(body)
 
-def _send_rejection_mail(rejected, options,
-                         me = "OCF Staff <help@ocf.berkeley.edu>"):
+def _send_rejection_mail(rejected, options):
     if rejected and options.email:
         rejected_text = open(ACCOUNT_REJECTED_LETTER).read()
-        os.environ["REPLYTO"] = me
+        os.environ["REPLYTO"] = ocf.MAIL_FROM_HELP
 
         for user, comment in rejected:
             body = rejected_text.format(account_name = user["account_name"],
                                        comment = comment)
-            s = Popen(["mail", "-s", "OCF Account Request Rejected", user["email"]],
+            s = Popen(["mail", "-a", "From: " + ocf.MAIL_FROM_HELP, "-s", "OCF Account Request Rejected", user["email"]],
                       stdin = PIPE)
             s.communicate(body)
 
