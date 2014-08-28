@@ -21,7 +21,7 @@ ACCOUNT_CREATED_LETTER = \
 
 def _send_finalize_emails(users, options, staff="sm@ocf.berkeley.edu"):
     """
-    Notify users and staff that accounts were created.
+    Notify users that accounts were created.
     """
 
     if users and options.email:
@@ -34,16 +34,6 @@ def _send_finalize_emails(users, options, staff="sm@ocf.berkeley.edu"):
             s = Popen(["mail", "-a", "From: " + ocf.MAIL_FROM_HELP, "-s", "OCF Account Created", user["email"]],
                       stdin = PIPE)
             s.communicate(body)
-
-        # Notify staff of all the created accounts
-        user = options.admin_user
-        body = "Accounts created on {0} by {1}:\n".format(datetime.now(), user)
-
-        for user in users:
-            body += "{0}: {1}\n".format(user["account_name"], user["owner"])
-
-        s = Popen(["mail", "-a", "From: " + ocf.MAIL_FROM_BOT, "-s", "Created OCF Accounts", staff], stdin = PIPE)
-        s.communicate(body)
 
 def _get_max_uid_number(connection):
     entries = connection.search_st(OCF_DN, ldap.SCOPE_SUBTREE, "(uid=*)",

@@ -16,7 +16,7 @@ import ldap
 import ocf
 
 from ocf import OCF_DN
-from utils import get_log_entries, fancy_open, write_users
+from utils import get_log_entries, fancy_open, write_users, irc_alert
 
 ACCOUNT_REJECTED_LETTER = \
   os.path.join(os.path.dirname(__file__), "txt", "acct.rejected.letter")
@@ -36,6 +36,9 @@ def _staff_approval(user, error_str, accepted, needs_approval, rejected, options
         accepted.append(user)
         return True
     elif ret in ["n", "no"]:
+        irc_alert(
+            "`{}` ({}) rejected by `{}` ({})".format(user["account_name"], user["owner"],
+            os.environ.get('SUDO_USER', 'root'), error_str))
         rejected.append((user, error_str))
         return False
     else:
@@ -306,56 +309,6 @@ def _filter_real_names(accepted, needs_approval, rejected, options):
 
     return accepted_new, needs_approval_new, rejected_new
 
-def _send_filter_mail(accepted, needs_approval, rejected, options,
-                      staff = "sm@ocf.berkeley.edu"):
-    if (accepted or needs_approval or rejected) and options.email:
-        user = options.admin_user
-        body = "Account filtering run by {0}, results:\n\n".format(user)
-
-        if accepted:
-            if options.interactive:
-                body += "Accepted"
-            else:
-                body += "Automatically accepted"
-
-            body += " (Accounts will be created next time this script runs):\n\n"
-
-            for user in accepted:
-                body += "    {0} ({1})\n".format(
-                  user["account_name"],
-                  ("group: " if user["is_group"] else "") + user["owner"])
-
-            body += "\n"
-
-        if needs_approval:
-            body += "Needs staff approval:\n\n"
-
-            for user, comment in needs_approval:
-                body += "    {0} ({1}): {2}\n".format(
-                  user["account_name"],
-                  ("group: " if user["is_group"] else "") + user["owner"],
-                  comment)
-
-            body += "\n"
-
-        if rejected:
-            body += "Rejected:\n\n"
-
-            for user, comment in rejected:
-                body += "    {0} ({1}): {2}\n".format(
-                  user["account_name"],
-                  ("group: " if user["is_group"] else "") + user["owner"],
-                  comment)
-
-            body += "\n"
-
-        body += "Live lovely,\n"
-        body += "--Account creation bot\n"
-
-        # Send out the mail!
-        s = Popen(["mail", "-a", "From: " + ocf.MAIL_FROM_BOT, "-s", "Account Filtering Results", staff], stdin = PIPE)
-        s.communicate(body)
-
 def _send_rejection_mail(rejected, options):
     if rejected and options.email:
         rejected_text = open(ACCOUNT_REJECTED_LETTER).read()
@@ -418,7 +371,6 @@ def filter_accounts(users, options):
         write_users(f, accepted)
 
     # Email out this information
-    _send_filter_mail(accepted, needs_approval, rejected, options)
     _send_rejection_mail(rejected, options)
 
     return needs_approval
