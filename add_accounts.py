@@ -14,7 +14,7 @@ import sys
 import ldap
 import ldap.modlist
 
-from utils import decrypt_password
+from utils import decrypt_password, irc_alert
 from ocf import home_dir, http_dir, OCF_DN, log_creation
 
 # See https://rt.ocf.berkeley.edu/Ticket/Display.html?id=638 for a list of
@@ -193,6 +193,9 @@ def add_all(users, options, dumps = None):
         if options.verbose:
             print("Creating new account, {0}, for {1}"
                   .format(user["account_name"], user["owner"]))
+
+        msg = "`{}` created ({})".format(user["account_name"], user["owner"])
+        irc_alert(msg)
 
         _add_home_dir(user, dump = dump)
         _add_web_dir(user, dump = dump)

@@ -28,7 +28,7 @@ from subprocess import check_call
 
 from filter_accounts import filter_accounts
 from finalize_accounts import finalize_accounts
-from utils import get_users, fancy_open, write_users, kinit
+from utils import get_users, fancy_open, write_users, kinit, irc_alert
 
 import ldap
 import ldap.sasl
@@ -121,6 +121,10 @@ def filter_stage(options):
     with fancy_open(options.users_file, lock = True,
                     pass_missing = True) as f:
         needs_approval = filter_accounts(get_users(f, options), options)
+
+    for user, comment in needs_approval:
+        msg = "`{}` ({}) needs approval: {}".format(user['account_name'], user['owner'], comment)
+        irc_alert(msg, all=True)
 
     # Write the users needing staff approval back to the users file
     with fancy_open(options.users_file, "w", lock = True) as f:

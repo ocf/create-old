@@ -10,6 +10,7 @@ import fcntl
 import os
 import pexpect
 from subprocess import check_call
+import string
 import sys
 
 # Password decryption
@@ -166,3 +167,11 @@ def kinit(principal, password, keytab = None, domain = "OCF.BERKELEY.EDU"):
             ["kinit", "--use-keytab", "--keytab=" + keytab, principal],
             stdout = sys.stderr
             )
+
+def irc_alert(msg, all=False):
+    allowed = string.ascii_letters + string.digits + string.punctuation + ' '
+    msg = filter(allowed.__contains__, msg)
+
+    with open('/srv/atool/irc/fifo', 'w') as fifo:
+        parts = ['all' if all else 'notall', msg]
+        fifo.write("\t".join(parts))
