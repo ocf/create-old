@@ -180,7 +180,7 @@ def _filter_registration_status(accepted, needs_approval, rejected, options):
 
     for user in accepted:
         # Skip CalNet registration check for group accounts
-        if user["is_group"]:
+        if user["is_group"] or user["university_uid"] > 9999999:
             accepted_new += user,
             continue
 
