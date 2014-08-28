@@ -102,26 +102,32 @@ def _create_parser():
 
     return parser
 
-def main(args):
-    """
-    Process a file contain a list of user accounts to create.
-    """
+def backup(options):
+    files = [options.mid_approve, options.users_file]
 
-    options = _create_parser().parse_args(args = args)
+    for s_path in files:
+        if os.path.isfile(s_path):
+            d_path = os.path.join(options.backup, os.path.basename(s_path))
 
-    user = getuser()
-    if user not in ["root", "create"]:
-        raise RuntimeError("Not running as correct user: " + user)
+            with open(d_path, "a") as dest, open(s_path) as src:
+                now = datetime.now()
+                dest.write("# Backup of {0} as it appeared on {1}\n".format(s_path, now))
 
-    options.calnet_ldap = ldap.initialize(options.calnet_ldap_url)
-    options.calnet_ldap.simple_bind_s("", "")
-    options.calnet_ldap.protocol_version = ldap.VERSION3
+                shutil.copyfileobj(src, dest)
 
-    options.ocf_ldap = ldap.initialize(options.ocf_ldap_url)
-    options.ocf_ldap.simple_bind_s("", "")
-    options.ocf_ldap.protocol_version = ldap.VERSION3
+def filter_stage(options):
+    """Filter accounts in the first stage into mid-approval."""
+    # Process all of the recently requested accounts
+    with fancy_open(options.users_file, lock = True,
+                    pass_missing = True) as f:
+        needs_approval = filter_accounts(get_users(f, options), options)
 
-    # Process the users in the mid stage of approval first
+    # Write the users needing staff approval back to the users file
+    with fancy_open(options.users_file, "w", lock = True) as f:
+        write_users(f, [user for user, comment in needs_approval])
+
+def create_stage(options):
+    """Create accounts in the mid-approval stage."""
     try:
         principal = options.admin_user + "/admin"
 
@@ -142,27 +148,30 @@ def main(args):
     finally:
         check_call(["kdestroy"])
 
+def main(args):
+    """
+    Process a file contain a list of user accounts to create.
+    """
+
+    options = _create_parser().parse_args(args = args)
+
+    user = getuser()
+    if user not in ["root", "atool"]:
+        raise RuntimeError("Not running as correct user: " + user)
+
+    options.calnet_ldap = ldap.initialize(options.calnet_ldap_url)
+    options.calnet_ldap.simple_bind_s("", "")
+    options.calnet_ldap.protocol_version = ldap.VERSION3
+
+    options.ocf_ldap = ldap.initialize(options.ocf_ldap_url)
+    options.ocf_ldap.simple_bind_s("", "")
+    options.ocf_ldap.protocol_version = ldap.VERSION3
+
     if options.backup:
-        files = [options.mid_approve, options.users_file]
+        backup(options)
 
-        for s_path in files:
-            if os.path.isfile(s_path):
-                d_path = os.path.join(options.backup, os.path.basename(s_path))
-
-                with open(d_path, "a") as dest, open(s_path) as src:
-                    now = datetime.now()
-                    dest.write("# Backup of {0} as it appeared on {1}\n".format(s_path, now))
-
-                    shutil.copyfileobj(src, dest)
-
-    # Process all of the recently requested accounts
-    with fancy_open(options.users_file, lock = True,
-                    pass_missing = True) as f:
-        needs_approval = filter_accounts(get_users(f, options), options)
-
-    # Write the users needing staff approval back to the users file
-    with fancy_open(options.users_file, "w", lock = True) as f:
-        write_users(f, [user for user, comment in needs_approval])
+    filter_stage(options)
+    create_stage(options)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
