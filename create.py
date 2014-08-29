@@ -14,6 +14,7 @@ User creation tool.
 from __future__ import with_statement, print_function
 
 import os
+import os.path
 import sys
 sys.path.insert(0, os.path.join(os.path.split(__file__)[0], "lib", "python2.6", "site-packages"))
 
@@ -124,11 +125,28 @@ def filter_stage(options):
 
     for user, comment in needs_approval:
         msg = "`{}` ({}) needs approval: {}".format(user['account_name'], user['owner'], comment)
-        irc_alert(msg, all=True)
+        write_and_alert('/srv/atool/pending', msg, all=True)
 
     # Write the users needing staff approval back to the users file
     with fancy_open(options.users_file, "w", lock = True) as f:
         write_users(f, [user for user, comment in needs_approval])
+
+def write_and_alert(path, line, all=False):
+    """Append to the given file, alerting to IRC. Only appends/alerts if the
+    line has not already been sent."""
+
+    # is it already in the file?
+    if os.path.isfile(path):
+        with open(path) as f:
+            if line in (l.strip() for l in f.readlines()):
+                print("already seen it!")
+                return
+
+    with open(path, "a") as f:
+        f.write(line + "\n")
+
+    irc_alert(line, all=all)
+
 
 def create_stage(options):
     """Create accounts in the mid-approval stage."""
@@ -160,8 +178,9 @@ def main(args):
     options = _create_parser().parse_args(args = args)
 
     user = getuser()
-    if user not in ["root", "atool"]:
-        raise RuntimeError("Not running as correct user: " + user)
+
+    if user != 'atool':
+        raise RuntimeError("Not running as correct user: " + user + " (run as atool)")
 
     options.calnet_ldap = ldap.initialize(options.calnet_ldap_url)
     options.calnet_ldap.simple_bind_s("", "")
