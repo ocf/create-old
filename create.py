@@ -139,7 +139,6 @@ def write_and_alert(path, line, all=False):
     if os.path.isfile(path):
         with open(path) as f:
             if line in (l.strip() for l in f.readlines()):
-                print("already seen it!")
                 return
 
     with open(path, "a") as f:
