@@ -26,6 +26,7 @@ from grp import getgrnam
 from pwd import getpwnam
 import shutil
 from subprocess import check_call
+import fcntl
 
 from filter_accounts import filter_accounts
 from finalize_accounts import finalize_accounts
@@ -102,6 +103,16 @@ def _create_parser():
                         help = "Keytab file to use for kinit")
 
     return parser
+
+def get_lock(path='/srv/atool/.create.lock'):
+    """Obtain an exclusive lock on the given path."""
+    try:
+        lock_file = open(path, 'a')
+        fcntl.flock(lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        return lock_file
+    except IOError:
+        raise RuntimeError(
+            "Unable to lock {}; are you running multiple of me?".format(path))
 
 def backup(options):
     files = [options.mid_approve, options.users_file]
@@ -180,6 +191,8 @@ def main(args):
 
     if user != 'atool':
         raise RuntimeError("Not running as correct user: " + user + " (run as atool)")
+
+    lock = get_lock()
 
     options.calnet_ldap = ldap.initialize(options.calnet_ldap_url)
     options.calnet_ldap.simple_bind_s("", "")
