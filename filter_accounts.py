@@ -11,6 +11,7 @@ import os
 import re
 from difflib import SequenceMatcher
 from itertools import permutations
+from math import factorial
 from subprocess import PIPE, Popen
 
 import ldap
@@ -319,33 +320,50 @@ def _send_rejection_mail(rejected, options):
 
 
 def similarity(realname, username):
-    """Find the number of edits needed when turning realname into username.
+    """
+    Return a count of the edits that turn realname into username.
 
-    Find the minimum number of replacements and insertions
-    (deletions are not counted) that turn any of the permutations of words in
-    realname into username, using the built-in difflib.SequenceMatcher class.
+    Count the number of replacements and insertions (*ignoring* deletions)
+    for the minimum number of edits (*including* deletions) that turn any of
+    the permutations of words orderings or initialisms of realname into
+    username, using the built-in difflib.SequenceMatcher class.
     SequenceMatcher finds the longest continguous matching subsequence and
     continues this process recursively.
 
-    This is usually, but not always, the edit distance with zero deletion
-    cost. Long realnames combined with very short matching subsequences
-    (such as initials) may require more additions with SequenceMatcher than
-    their edit distances.
+    This is usually the edit distance with zero deletion cost, but is
+    intentionally greater for longer realnames with short matching
+    subsequences, which are likely coincidental.
 
     For most usernames based on real names, this number is 0.
+
     """
+    # The more words in realname, the more permutations. O(n!) is terrible!
+    max_words = 8
+    max_iterations = factorial(max_words)
+
+    words = re.findall("\w+", realname)
+    initials = [word[0] for word in words]
+
+    if len(words) > max_words:
+        print("Not trying all permutations of '{}' for similarity.".format(
+              realname))
+
     distances = []
-
-    for permutation in permutations(re.findall("\w+", realname)):
-        permutation = "".join(permutation).lower()
-        s = SequenceMatcher(None, permutation, username)
-        edits = s.get_opcodes()
-        distance = sum(edit[4] - edit[3]
-                       for edit in edits
-                       if edit[0] in ["replace", "insert"])
-        distances.append(distance)
-
-    return sorted(distances)[0]
+    for sequence in [words, initials]:
+        for (i, permutation) in enumerate(permutations(sequence)):
+            if i > max_iterations:
+                break
+            s = "".join(permutation).lower()
+            matcher = SequenceMatcher(None, s, username)
+            edits = matcher.get_opcodes()
+            distance = sum(edit[4] - edit[3]
+                           for edit in edits
+                           if edit[0] in ["replace", "insert"])
+            if distance == 0:
+                # Edit distance cannot be smaller than 0, so return early.
+                return 0
+            distances.append(distance)
+    return min(distances)
 
 
 def filter_accounts(users, options):
