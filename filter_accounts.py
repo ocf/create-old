@@ -174,9 +174,9 @@ def _filter_ocf_duplicates(accepted, needs_approval, rejected, options):
         search_filter = "{0}={1}".format(field, user["university_uid"])
         results = options.ocf_ldap.search_st(ocf.OCF_DN, ldap.SCOPE_SUBTREE,
                                              search_filter, retrieve_attrs)
-        uidnumber = results[0][1]["uidNumber"][0]
+        uidnumber = results and results[0][1]["uidNumber"][0]
 
-        if (results and uidnumber >= options.conflict_uid_lower_bound):
+        if uidnumber and uidnumber >= options.conflict_uid_lower_bound:
             _staff_approval(user, "Possible existing account",
                             accepted_new, needs_approval_new, rejected_new,
                             options)
