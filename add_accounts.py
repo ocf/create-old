@@ -91,7 +91,8 @@ def _add_all_ldap(users, dumps, connection, shell = "/bin/bash"):
             print("LDAP account already exists", file = sys.stderr)
 
     # Invalidate the local cache so we can chown their files later
-    check_call(["nscd", "-i", "passwd"], stdout = open(os.devnull, "w"))
+    # (this is probably not necessary since nscd won't cache "DNE" responses)
+    check_call(["nscd", "-i", "passwd"], stderr=open(os.devnull, "w"))
 
 def _add_ldap_groups(user, options, dump = None):
     pass
