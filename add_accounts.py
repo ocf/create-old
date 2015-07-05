@@ -1,8 +1,3 @@
-"""
-"""
-
-from __future__ import with_statement, print_function
-
 import base64
 from grp import getgrnam
 import pexpect
@@ -14,13 +9,16 @@ import sys
 import ldap
 import ldap.modlist
 
-from utils import decrypt_password, irc_alert
-from ocf import home_dir, http_dir, OCF_DN, log_creation
+from utils import decrypt_password
+from ocf import log_creation
+
+import ocflib.account.utils as utils
+import ocflib.constants as constants
 
 # See https://rt.ocf.berkeley.edu/Ticket/Display.html?id=638 for a list of
 # all the things to copy over
 
-def _add_all_kerberos(users, dumps, options, domain = "OCF.BERKELEY.EDU"):
+def _add_all_kerberos(users, options, domain = "OCF.BERKELEY.EDU"):
     principal = "{0}/admin".format(options.admin_user)
     args = ["--principal=" + principal]
     if options.keytab:
@@ -28,7 +26,7 @@ def _add_all_kerberos(users, dumps, options, domain = "OCF.BERKELEY.EDU"):
     kadmin = pexpect.spawn("kadmin", args)
     kadmin.expect("kadmin> ")
 
-    for user, dump in zip(users, dumps):
+    for user in users:
         # We don't have a decent kerberos python module for administration
         # commands :(
         user_password = \
@@ -59,16 +57,16 @@ def _add_all_kerberos(users, dumps, options, domain = "OCF.BERKELEY.EDU"):
     kadmin.sendline("exit")
     kadmin.expect(pexpect.EOF)
 
-def _add_all_ldap(users, dumps, connection, shell = "/bin/bash"):
-    for user, dumps in zip(users, dumps):
-        dn = "uid={0},{1}".format(user["account_name"], OCF_DN)
+def _add_all_ldap(users, connection, shell="/bin/bash"):
+    for user in users:
+        dn = "uid={},{}".format(user["account_name"], constants.OCF_LDAP_PEOPLE)
         attrs = {
             "objectClass": ["ocfAccount", "account", "posixAccount"],
             "cn": [user["owner"]],
             "uid": [user["account_name"]],
             "uidNumber": [str(user["uid_number"])],
             "gidNumber": [str(getgrnam("ocf").gr_gid)],
-            "homeDirectory": [home_dir(user["account_name"])],
+            "homeDirectory": [utils.home_dir(user["account_name"])],
             "loginShell": [shell],
             "mail": [user["email"]],
             "userPassword": [str("{SASL}" + user["account_name"] + "@OCF.BERKELEY.EDU")]
@@ -94,112 +92,10 @@ def _add_all_ldap(users, dumps, connection, shell = "/bin/bash"):
     # (this is probably not necessary since nscd won't cache "DNE" responses)
     check_call(["nscd", "-i", "passwd"], stderr=open(os.devnull, "w"))
 
-def _add_ldap_groups(user, options, dump = None):
-    pass
 
-def _add_home_dir(user, dump = None):
-    # Probably want to copy their homedir to a tmp directory...or maybe
-    # we can just forgo the dump/add paradigm for files
-    home = home_dir(user["account_name"])
-    check_call(
-        ["sudo", "install", "-d", "--mode=0700", "--group=ocf",
-         "--owner=" + user["account_name"], home],
-        stdout = sys.stderr
-        )
+def add_all(users, options):
+    _add_all_kerberos(users, options)
+    _add_all_ldap(users, options.ocf_ldap)
 
-    if dump is None:
-        for name in [".cshrc", ".bashrc", ".bash_profile", ".bash_logout"]:
-            path = os.path.join(os.path.dirname(__file__), "rc", name)
-            check_call(
-                ["sudo", "install", "--mode=0600", "--group=ocf",
-                 "--owner=" + user["account_name"], path, home],
-                stdout = sys.stderr
-                )
-
-def _add_web_dir(user, dump = None):
-    # See comments in _add_home_dir
-    http = http_dir(user["account_name"])
-    check_call(
-        ["sudo", "install", "-d", "--mode=0000", "--group=ocf",
-         "--owner=" + user["account_name"], http],
-        stdout = sys.stderr
-        )
-
-def _add_forward(user, dump = None):
-    if dump is None and user["forward"]:
-        forward = os.path.join(home_dir(user["account_name"]), ".forward")
-
-        tmp = tempfile.mkstemp()[1]
-
-        with open(tmp, "w") as f:
-            f.write(user["email"] + "\n")
-
-        check_call(
-            ["sudo", "install", "--group=ocf", "--owner=" + user["account_name"],
-             tmp, forward],
-            stdout = sys.stderr
-            )
-
-def _add_postgresql(user, options, dump = None):
-    """
-    Re-add a user's postgresql database.
-    """
-    if dump is not None:
-        pass
-
-def _add_mysql(user, options, dump = None):
-    """
-    Adds a user's mysql tables back into the OCF database.
-    """
-    # Access the new username with user["username"]
-    pass
-
-def _add_tsunami_crontab(user, dump, options):
-    pass
-
-def _add_crontabs(user, dump, options):
-    _add_tsunami_crontab(user, dump["tsunami"], options)
-
-def _add_pykota(user, dump, options):
-    pass
-
-def _add_rt(user, new_username, dump, options):
-    # We care enough to support staff?
-    pass
-
-def _add_wiki(user, dump, options):
-    # We care enough to support staff?
-    pass
-
-def _add_mail(user, dump, options):
-    # Is this not all in the homedir?
-    pass
-
-def _add_user_info(user, dump, options):
-    pass
-
-def add_all(users, options, dumps = None):
-    if dumps:
-        assert len(dumps) == len(users)
-    else:
-        dumps = [None] * len(users)
-
-    if options.verbose:
-        print("Creating all kerberos and ldap accounts")
-
-    _add_all_kerberos(users, dumps, options)
-    _add_all_ldap(users, dumps, options.ocf_ldap)
-
-    for user, dump in zip(users, dumps):
-        if options.verbose:
-            print("Creating new account, {0}, for {1}"
-                  .format(user["account_name"], user["owner"]))
-
-        msg = "`{}` created ({})".format(user["account_name"], user["owner"])
-        irc_alert(msg)
-
-        _add_home_dir(user, dump = dump)
-        _add_web_dir(user, dump = dump)
-        _add_forward(user, dump = dump)
-
+    for user in users:
         log_creation(user, options)
